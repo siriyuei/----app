@@ -11,13 +11,14 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SmartImage } from '@/components/SmartImage';
+import { productImages } from '@/constants/productImages';
 
 // 数字馆商品
 const digitalItems = [
   {
     id: '1',
     title: '墨韵山水 NFT',
-    image: '/images/product-nft.jpg',
+    image: productImages.nft,
     price: 2.5,
     currency: 'ETH',
     creator: {
@@ -31,7 +32,7 @@ const digitalItems = [
   {
     id: '2',
     title: '数字书法 - 兰亭序',
-    image: '/images/work-calligraphy-1.jpg',
+    image: productImages.calligraphy1,
     price: 1.8,
     currency: 'ETH',
     creator: {
@@ -45,7 +46,7 @@ const digitalItems = [
   {
     id: '3',
     title: '水墨荷花系列',
-    image: '/images/work-painting-3.jpg',
+    image: productImages.painting3,
     price: 3.2,
     currency: 'ETH',
     creator: {
@@ -59,7 +60,7 @@ const digitalItems = [
   {
     id: '4',
     title: '竹影清风',
-    image: '/images/work-painting-2.jpg',
+    image: productImages.painting2,
     price: 1.5,
     currency: 'ETH',
     creator: {
@@ -76,7 +77,7 @@ const physicalItems = [
   {
     id: '5',
     title: '精品文房四宝套装',
-    image: '/images/product-wenfang.jpg',
+    image: productImages.wenfang,
     price: 1280,
     currency: 'CNY',
     shop: '墨香阁',
@@ -86,7 +87,7 @@ const physicalItems = [
   {
     id: '6',
     title: '名家书法复刻 - 兰亭序',
-    image: '/images/work-calligraphy-2.jpg',
+    image: productImages.calligraphy2,
     price: 680,
     currency: 'CNY',
     shop: '古韵轩',
@@ -96,7 +97,7 @@ const physicalItems = [
   {
     id: '7',
     title: '手工宣纸 100张',
-    image: '/images/course-painting.jpg',
+    image: productImages.painting1,
     price: 168,
     currency: 'CNY',
     shop: '纸墨香',
@@ -105,7 +106,7 @@ const physicalItems = [
   {
     id: '8',
     title: '徽墨精品套装',
-    image: '/images/course-calligraphy.jpg',
+    image: productImages.calligraphy1,
     price: 388,
     currency: 'CNY',
     shop: '墨韵堂',

@@ -6,12 +6,16 @@ import {
   Pencil,
   Eraser,
   Heart,
-  ChatCircle
+  ChatCircle,
+  ArrowLeft,
+  ArrowRight,
+  Trash
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SmartImage } from '@/components/SmartImage';
+import { DrawingCanvas } from '@/components/DrawingCanvas';
 
 // 工具栏数据
 const tools = [
@@ -107,25 +111,52 @@ export function InkPool() {
       </div>
 
       {/* 画布区域 */}
-      <div className={cn(
-        'mx-4 mt-4 rounded-2xl overflow-hidden',
-        'aspect-[4/3] relative',
-        isDark ? 'bg-ink-900' : 'bg-paper'
-      )}>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className={cn(
-            'text-lg font-hand',
-            isDark ? 'text-ink-500' : 'text-ink-400'
-          )}>
-            在此创作您的作品...
-          </p>
-        </div>
-        {/* 画布网格线 */}
+      <div className="mx-4 mt-4">
         <div className={cn(
-          'absolute inset-0 opacity-10',
-          'bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)]',
-          'bg-[size:40px_40px]'
-        )} />
+          'rounded-2xl overflow-hidden',
+          'aspect-[4/3] relative',
+          isDark ? 'bg-ink-900' : 'bg-paper',
+          'shadow-ink-lg'
+        )}>
+          <DrawingCanvas tool={activeTool} color={activeColor} isDark={isDark} />
+        </div>
+        
+        {/* 操作按钮 */}
+        <div className="flex items-center justify-center gap-4 mt-3">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            className={cn(
+              'p-2 rounded-full',
+              isDark ? 'bg-ink-800 text-ink-300 hover:bg-ink-700' : 'bg-white text-ink-600 hover:bg-ink-100',
+              'shadow-ink'
+            )}
+            title="撤销"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            className={cn(
+              'p-2 rounded-full',
+              isDark ? 'bg-ink-800 text-ink-300 hover:bg-ink-700' : 'bg-white text-ink-600 hover:bg-ink-100',
+              'shadow-ink'
+            )}
+            title="重做"
+          >
+            <ArrowRight className="w-5 h-5" />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            className={cn(
+              'p-2 rounded-full',
+              'bg-cinnabar/10 text-cinnabar hover:bg-cinnabar/20',
+              'shadow-ink'
+            )}
+            title="清空画布"
+          >
+            <Trash className="w-5 h-5" />
+          </motion.button>
+        </div>
       </div>
 
       {/* 每日一诗 */}

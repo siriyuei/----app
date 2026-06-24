@@ -8,10 +8,12 @@ import { Market } from '@/pages/Market';
 import { Academy } from '@/pages/Academy';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
+import { DailyCharacter } from '@/pages/DailyCharacter';
 import { BottomNav } from '@/components/BottomNav';
 import { PublishSheet } from '@/components/PublishSheet';
 import { DetailDialog } from '@/components/DetailDialog';
 import { PublishSuccessModal } from '@/components/PublishSuccessModal';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 
 // 页面过渡动画配置
@@ -95,6 +97,12 @@ function App() {
             <Academy />
           </motion.div>
         );
+      case 'daily-character':
+        return (
+          <motion.div key="daily-character" {...pageTransition}>
+            <DailyCharacter />
+          </motion.div>
+        );
       case 'profile':
         return (
           <motion.div key="profile" {...pageTransition}>
@@ -120,29 +128,31 @@ function App() {
   const showBottomNav = ['inkpool', 'gathering', 'market', 'academy', 'profile'].includes(currentPage);
 
   return (
-    <div className={cn(
-      'min-h-screen transition-colors duration-300',
-      isDark ? 'bg-ink-950' : 'bg-ink-50'
-    )}>
-      {/* 主内容区域 */}
-      <main className="relative">
-        <AnimatePresence mode="wait">
-          {renderPage()}
-        </AnimatePresence>
-      </main>
+    <ErrorBoundary>
+      <div className={cn(
+        'min-h-screen transition-colors duration-300',
+        isDark ? 'bg-ink-950' : 'bg-ink-50'
+      )}>
+        {/* 主内容区域 */}
+        <main className="relative">
+          <AnimatePresence mode="wait">
+            {renderPage()}
+          </AnimatePresence>
+        </main>
 
-      {/* 底部导航 */}
-      {showBottomNav && <BottomNav />}
+        {/* 底部导航 */}
+        {showBottomNav && <BottomNav />}
 
-      {/* 发布面板 */}
-      <PublishSheet />
+        {/* 发布面板 */}
+        <PublishSheet />
 
-      {/* 详情弹窗 */}
-      <DetailDialog />
+        {/* 详情弹窗 */}
+        <DetailDialog />
 
-      {/* 发布成功弹窗 */}
-      <PublishSuccessModal />
-    </div>
+        {/* 发布成功弹窗 */}
+        <PublishSuccessModal />
+      </div>
+    </ErrorBoundary>
   );
 }
 

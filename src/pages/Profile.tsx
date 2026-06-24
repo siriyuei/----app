@@ -23,12 +23,13 @@ const menuItems = [
 
 // 作品展示
 const myWorks = [
-  '/images/work-calligraphy-1.jpg',
-  '/images/work-painting-1.jpg',
-  '/images/work-painting-2.jpg',
-  '/images/work-calligraphy-2.jpg',
-  '/images/work-painting-3.jpg',
-];
+    { id: '1', image: '/images/work-calligraphy-1.jpg', title: '书法练习', likes: 128 },
+    { id: '2', image: '/images/work-painting-1.jpg', title: '山水意境', likes: 256 },
+    { id: '3', image: '/images/work-painting-2.jpg', title: '竹影清风', likes: 189 },
+    { id: '4', image: '/images/work-calligraphy-2.jpg', title: '兰亭序临摹', likes: 312 },
+    { id: '5', image: '/images/work-painting-3.jpg', title: '荷花清韵', likes: 445 },
+    { id: '6', image: '/images/work-calligraphy-1.jpg', title: '行书练习', likes: 98 },
+  ];
 
 export function Profile() {
   const { user, theme, setCurrentPage } = useStore();
@@ -218,17 +219,31 @@ export function Profile() {
         <div className="grid grid-cols-3 gap-2">
           {myWorks.map((work, index) => (
             <motion.div
-              key={index}
+              key={work.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              className="aspect-square rounded-lg overflow-hidden"
+              className={cn(
+                'aspect-square rounded-lg overflow-hidden relative group',
+                'shadow-ink hover:shadow-lg transition-shadow'
+              )}
             >
               <SmartImage
-                src={work}
-                alt={`作品 ${index + 1}`}
+                src={work.image}
+                alt={work.title}
                 className="w-full h-full object-cover"
               />
+              {/* 悬停遮罩 */}
+              <div className={cn(
+                'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100',
+                'transition-opacity duration-300',
+                'flex items-center justify-center'
+              )}>
+                <div className="flex items-center gap-2 text-white">
+                  <Heart weight="fill" className="w-4 h-4 text-cinnabar" />
+                  <span className="text-xs">{work.likes}</span>
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>

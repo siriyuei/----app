@@ -5,7 +5,12 @@ import {
   ChatCircle, 
   ShareNetwork,
   Users,
-  Clock
+  Clock,
+  Flower,
+  Moon,
+  Building,
+  Mountains,
+  BookOpen
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
@@ -15,11 +20,11 @@ import { SmartImage } from '@/components/SmartImage';
 
 // 话题标签
 const topics = [
-  { id: 'spring', name: '春日咏柳', count: 128 },
-  { id: 'midautumn', name: '中秋赏月', count: 256 },
-  { id: 'jiangnan', name: '墨韵江南', count: 189 },
-  { id: 'landscape', name: '山水意境', count: 342 },
-  { id: 'poetry', name: '诗词歌赋', count: 567 },
+  { id: 'spring', name: '春日咏柳', count: 128, icon: Flower },
+  { id: 'midautumn', name: '中秋赏月', count: 256, icon: Moon },
+  { id: 'jiangnan', name: '墨韵江南', count: 189, icon: Building },
+  { id: 'landscape', name: '山水意境', count: 342, icon: Mountains },
+  { id: 'poetry', name: '诗词歌赋', count: 567, icon: BookOpen },
 ];
 
 // 活动数据
@@ -84,6 +89,7 @@ export function Gathering() {
         </h1>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {topics.map((topic) => {
+            const Icon = topic.icon;
             const isActive = activeTopic === topic.id;
             return (
               <motion.button
@@ -102,6 +108,7 @@ export function Gathering() {
                         : 'bg-white text-ink-600 hover:bg-ink-100')
                 )}
               >
+                <Icon className="w-5 h-5 mb-1" />
                 <span className="text-sm font-medium">{topic.name}</span>
                 <span className={cn(
                   'text-[10px]',

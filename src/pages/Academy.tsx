@@ -95,7 +95,7 @@ const leaderboard = [
 ];
 
 export function Academy() {
-  const { theme, setDialogItem } = useStore();
+  const { theme, setDialogItem, setCurrentPage } = useStore();
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -280,7 +280,10 @@ export function Academy() {
               )}>
                 上下结构，黑+土，共15画
               </p>
-              <button aria-label="开始今日练习" className="text-xs px-4 py-2 rounded-full bg-cinnabar text-white flex items-center gap-1">
+              <button 
+                aria-label="开始今日练习" 
+                onClick={() => setCurrentPage('daily-character')}
+                className="text-xs px-4 py-2 rounded-full bg-cinnabar text-white flex items-center gap-1">
                 <Play weight="fill" className="w-3 h-3" />
                 开始练习
               </button>

@@ -14,8 +14,11 @@ export function PublishSuccessModal() {
   };
 
   const handleViewWork = () => {
+    // 先关闭弹窗，然后延迟跳转
     setIsPublishSuccess(false);
-    setCurrentPage('inkpool');
+    setTimeout(() => {
+      setCurrentPage('gathering');
+    }, 300);
   };
 
   return (
@@ -87,7 +90,7 @@ export function PublishSuccessModal() {
                 onClick={handleViewWork}
                 className="flex-1 bg-cinnabar hover:bg-cinnabar-dark text-white"
               >
-                查看作品
+                查看动态
               </Button>
             </div>
 

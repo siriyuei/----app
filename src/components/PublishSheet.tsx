@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X,
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { SmartImage } from '@/components/SmartImage';
 
 // 发布类型
 const publishTypes = [
@@ -33,8 +32,11 @@ export function PublishSheet() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  
+  // 文件上传input引用
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isDark = theme === 'dark';
 
@@ -44,7 +46,7 @@ export function PublishSheet() {
     setTitle('');
     setContent('');
     setSelectedTags([]);
-    setImages([]);
+    setUploadedImage(null);
   }, [setIsPublishOpen]);
 
   useEffect(() => {
@@ -76,20 +78,92 @@ export function PublishSheet() {
     });
   };
 
-  const handlePublish = async () => {
+  // 简单的图片压缩函数
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // 最大尺寸
+          const maxSize = 600;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // 使用较低质量压缩
+            const compressed = canvas.toDataURL('image/jpeg', 0.5);
+            resolve(compressed);
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // 处理文件上传
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      alert('请上传图片文件');
+      return;
+    }
+
+    // 检查文件大小 (最大5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片大小不能超过5MB');
+      return;
+    }
+
+    try {
+      // 压缩图片
+      const compressedDataUrl = await compressImage(file);
+      setUploadedImage(compressedDataUrl);
+    } catch (error) {
+      console.error('图片处理失败:', error);
+      alert('图片处理失败，请重试');
+    }
+
+    // 重置input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePublish = () => {
     if (!user) return;
     
     setIsSubmitting(true);
     
-    // 模拟发布请求
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const imageUrl = images.length > 0 ? images[0] : `/images/work-${activeType}-1.jpg`;
+    // 使用上传的图片或默认图片
+    const imageUrl = uploadedImage || `/images/work-${activeType}-1.jpg`;
     
     // 添加到作品列表
     addWork({
-      title,
-      content,
+      title: title || '无题',
+      content: content,
       image: imageUrl,
       author: user,
       tags: selectedTags,
@@ -97,19 +171,30 @@ export function PublishSheet() {
     
     // 添加到动态列表
     addPost({
-      title,
-      content,
+      title: title || '',
+      content: content,
       image: imageUrl,
       author: user,
       tags: selectedTags,
       type: activeType as 'calligraphy' | 'painting' | 'poetry',
     });
     
+    // 重置表单
+    setTitle('');
+    setContent('');
+    setSelectedTags([]);
+    setUploadedImage(null);
     setIsSubmitting(false);
-    handleClose();
     
-    // 显示发布成功弹窗
-    setIsPublishSuccess(true);
+    // 立即关闭面板并显示成功弹窗
+    setIsPublishOpen(false);
+    
+    // 使用微任务确保状态更新完成后再显示成功弹窗
+    Promise.resolve().then(() => {
+      setTimeout(() => {
+        setIsPublishSuccess(true);
+      }, 100);
+    });
   };
 
   return (
@@ -247,43 +332,46 @@ export function PublishSheet() {
               {/* 图片上传区域 */}
               <div className="mb-4">
                 <div className="flex gap-2 flex-wrap">
-                  {images.map((img, index) => (
-                    <div
-                      key={index}
-                      className="w-20 h-20 rounded-lg overflow-hidden relative"
-                    >
-                      <SmartImage
-                        src={img}
-                        alt={`上传 ${index + 1}`}
+                  {uploadedImage && (
+                    <div className="w-20 h-20 rounded-lg overflow-hidden relative group">
+                      <img
+                        src={uploadedImage}
+                        alt="上传的图片"
                         className="w-full h-full object-cover"
                       />
                       <button
-                        onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
-                        aria-label={`删除第${index + 1}张图片`}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center"
+                        onClick={() => setUploadedImage(null)}
+                        aria-label="删除图片"
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      // 模拟添加图片
-                      setImages((prev) => [...prev, '/images/work-painting-1.jpg']);
-                    }}
-                    aria-label="添加图片"
-                    className={cn(
-                      'w-20 h-20 rounded-lg flex flex-col items-center justify-center gap-1',
-                      'border-2 border-dashed',
-                      isDark 
-                        ? 'border-ink-700 text-ink-500 hover:border-ink-600' 
-                        : 'border-ink-300 text-ink-400 hover:border-ink-400'
-                    )}
-                  >
-                    <Plus className="w-6 h-6" />
-                    <span className="text-xs">添加图片</span>
-                  </button>
+                  )}
+                  {!uploadedImage && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="添加图片"
+                      className={cn(
+                        'w-20 h-20 rounded-lg flex flex-col items-center justify-center gap-1',
+                        'border-2 border-dashed',
+                        isDark 
+                          ? 'border-ink-700 text-ink-500 hover:border-ink-600 hover:text-ink-400' 
+                          : 'border-ink-300 text-ink-400 hover:border-ink-400 hover:text-ink-500'
+                      )}
+                    >
+                      <Plus className="w-6 h-6" />
+                      <span className="text-xs">添加图片</span>
+                    </button>
+                  )}
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </div>
 
               {/* 标签选择 */}
