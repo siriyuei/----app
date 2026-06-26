@@ -9,13 +9,16 @@ import {
   ChatCircle,
   ArrowLeft,
   ArrowRight,
-  Trash
+  Trash,
+  Spinner
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
+import { useWorks } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SmartImage } from '@/components/SmartImage';
 import { DrawingCanvas } from '@/components/DrawingCanvas';
+import { useAuth } from '@/hooks/useAuth';
 
 // 工具栏数据
 const tools = [
@@ -35,14 +38,16 @@ const colors = [
 ];
 
 export function InkPool() {
-  const { theme, works, toggleLike, likedItems, setDialogItem } = useStore();
+  const { theme, toggleLike, likedItems, setDialogItem } = useStore();
+  const { user } = useAuth();
+  const { works, loading, error } = useWorks(user);
   const [activeTool, setActiveTool] = useState('brush');
   const [activeColor, setActiveColor] = useState('black');
 
   const isDark = theme === 'dark';
 
   const handleWorkClick = (work: typeof works[0]) => {
-    setDialogItem({ type: 'work', data: work });
+    setDialogItem({ type: 'work', data: work as any });
   };
 
   const handleLike = (e: React.MouseEvent, workId: string) => {
@@ -198,101 +203,121 @@ export function InkPool() {
           精选作品
         </h2>
         <div className="grid grid-cols-2 gap-4">
-          {works.map((work, index) => (
-            <motion.div
-              key={work.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => handleWorkClick(work)}
-              className={cn(
-                'rounded-xl overflow-hidden cursor-pointer',
-                isDark ? 'bg-ink-900' : 'bg-white',
-                'shadow-ink',
-                'hover:shadow-lg transition-shadow'
-              )}
-            >
-              {/* 作品图片 */}
-              <div className="aspect-[4/5] relative overflow-hidden">
-                <SmartImage
-                  src={work.image}
-                  alt={work.title}
-                  className="w-full h-full object-cover"
-                />
-                {/* 标签 */}
-                <div className="absolute top-2 left-2 flex gap-1">
-                  {work.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[10px] px-2 py-0.5 rounded-full bg-black/50 text-white"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner className="w-8 h-8 animate-spin text-cinnabar" />
+            </div>
+          ) : error ? (
+            <div className={cn(
+              'text-center py-12',
+              isDark ? 'text-ink-400' : 'text-ink-500'
+            )}>
+              <p>加载失败：{error}</p>
+            </div>
+          ) : works.length === 0 ? (
+            <div className={cn(
+              'text-center py-12',
+              isDark ? 'text-ink-400' : 'text-ink-500'
+            )}>
+              <p>暂无作品，快来发布你的第一个作品吧！</p>
+            </div>
+          ) : (
+            works.map((work, index) => (
+              <motion.div
+                key={work.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => handleWorkClick(work)}
+                className={cn(
+                  'rounded-xl overflow-hidden cursor-pointer',
+                  isDark ? 'bg-ink-900' : 'bg-white',
+                  'shadow-ink',
+                  'hover:shadow-lg transition-shadow'
+                )}
+              >
+                {/* 作品图片 */}
+                <div className="aspect-[4/5] relative overflow-hidden">
+                  <SmartImage
+                    src={work.image || undefined}
+                    alt={work.title}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* 标签 */}
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    {(work.tags || []).map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-black/50 text-white"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              
-              {/* 作品信息 */}
-              <div className="p-3">
-                <h3 className={cn(
-                  'font-medium text-sm mb-2',
-                  isDark ? 'text-ink-200' : 'text-ink-800'
-                )}>
-                  {work.title}
-                </h3>
                 
-                {/* 作者信息 */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src={work.author.avatar} />
-                      <AvatarFallback>{work.author.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <span className={cn(
-                      'text-xs',
-                      isDark ? 'text-ink-400' : 'text-ink-500'
-                    )}>
-                      {work.author.name}
-                    </span>
-                  </div>
+                {/* 作品信息 */}
+                <div className="p-3">
+                  <h3 className={cn(
+                    'font-medium text-sm mb-2',
+                    isDark ? 'text-ink-200' : 'text-ink-800'
+                  )}>
+                    {work.title}
+                  </h3>
                   
-                  {/* 互动按钮 */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => handleLike(e, work.id)}
-                      className="flex items-center gap-1"
-                    >
-                      <Heart
-                        weight={likedItems.includes(work.id) ? 'fill' : 'regular'}
-                        className={cn(
+                  {/* 作者信息 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={work.author?.avatar} />
+                        <AvatarFallback>{work.author?.name[0] || '?'}</AvatarFallback>
+                      </Avatar>
+                      <span className={cn(
+                        'text-xs',
+                        isDark ? 'text-ink-400' : 'text-ink-500'
+                      )}>
+                        {work.author?.name || '匿名用户'}
+                      </span>
+                    </div>
+                    
+                    {/* 互动按钮 */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleLike(e, work.id)}
+                        className="flex items-center gap-1"
+                      >
+                        <Heart
+                          weight={likedItems.includes(work.id) ? 'fill' : 'regular'}
+                          className={cn(
+                            'w-4 h-4',
+                            likedItems.includes(work.id) ? 'text-cinnabar' : (isDark ? 'text-ink-500' : 'text-ink-400')
+                          )}
+                        />
+                        <span className={cn(
+                          'text-xs',
+                          isDark ? 'text-ink-500' : 'text-ink-400'
+                        )}>
+                          {work.likes + (likedItems.includes(work.id) ? 1 : 0)}
+                        </span>
+                      </button>
+                      <button className="flex items-center gap-1">
+                        <ChatCircle className={cn(
                           'w-4 h-4',
-                          likedItems.includes(work.id) ? 'text-cinnabar' : (isDark ? 'text-ink-500' : 'text-ink-400')
-                        )}
-                      />
-                      <span className={cn(
-                        'text-xs',
-                        isDark ? 'text-ink-500' : 'text-ink-400'
-                      )}>
-                        {work.likes + (likedItems.includes(work.id) ? 1 : 0)}
-                      </span>
-                    </button>
-                    <button className="flex items-center gap-1">
-                      <ChatCircle className={cn(
-                        'w-4 h-4',
-                        isDark ? 'text-ink-500' : 'text-ink-400'
-                      )} />
-                      <span className={cn(
-                        'text-xs',
-                        isDark ? 'text-ink-500' : 'text-ink-400'
-                      )}>
-                        {work.comments}
-                      </span>
-                    </button>
+                          isDark ? 'text-ink-500' : 'text-ink-400'
+                        )} />
+                        <span className={cn(
+                          'text-xs',
+                          isDark ? 'text-ink-500' : 'text-ink-400'
+                        )}>
+                          {work.comments}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
     </div>

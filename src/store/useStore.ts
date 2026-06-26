@@ -41,6 +41,10 @@ export interface Work {
   shares: number;
   tags: string[];
   createdAt: string;
+  type?: 'calligraphy' | 'painting' | 'poetry';
+  created_at?: string;
+  user_id?: string;
+  updated_at?: string;
 }
 
 export interface Post extends Work {
