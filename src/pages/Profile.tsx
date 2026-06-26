@@ -27,16 +27,16 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const menuItems = [
-  { id: 'works', name: '我的作品', icon: Images, count: 0 },
-  { id: 'favorites', name: '我的收藏', icon: Heart, count: 0 },
-  { id: 'orders', name: '我的订单', icon: ShoppingBag, count: 0 },
-  { id: 'learning', name: '学习记录', icon: BookOpen, count: 0 },
+  { id: 'works', name: '我的作品', icon: Images, count: 0, page: 'inkpool' as const },
+  { id: 'favorites', name: '我的收藏', icon: Heart, count: 0, page: 'inkpool' as const },
+  { id: 'orders', name: '我的订单', icon: ShoppingBag, count: 0, page: 'market' as const },
+  { id: 'learning', name: '学习记录', icon: BookOpen, count: 0, page: 'academy' as const },
 ];
 
 const accountMenuItems = [
-  { id: 'security', name: '账号安全', icon: Shield, desc: '修改密码、绑定邮箱' },
-  { id: 'password', name: '修改密码', icon: Lock, desc: '设置新密码' },
-  { id: 'devices', name: '登录设备', icon: DeviceMobile, desc: '管理登录设备' },
+  { id: 'security', name: '账号安全', icon: Shield, desc: '修改密码、绑定邮箱', page: 'account-security' as const },
+  { id: 'password', name: '修改密码', icon: Lock, desc: '设置新密码', page: 'account-security' as const },
+  { id: 'devices', name: '登录设备', icon: DeviceMobile, desc: '管理登录设备', page: 'account-security' as const },
 ];
 
 const placeholderWorks = [
@@ -372,14 +372,15 @@ export function Profile() {
             const Icon = item.icon;
             return (
               <motion.button
-                key={item.id}
-                whileTap={{ scale: 0.99 }}
-                aria-label={`打开${item.name}`}
-                className={cn(
-                  'w-full flex items-center justify-between p-4',
-                  index !== menuItems.length - 1 && (isDark ? 'border-b border-ink-800' : 'border-b border-ink-100')
-                )}
-              >
+                  key={item.id}
+                  whileTap={{ scale: 0.99 }}
+                  aria-label={`打开${item.name}`}
+                  onClick={() => setCurrentPage(item.page)}
+                  className={cn(
+                    'w-full flex items-center justify-between p-4',
+                    index !== menuItems.length - 1 && (isDark ? 'border-b border-ink-800' : 'border-b border-ink-100')
+                  )}
+                >
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     'w-10 h-10 rounded-xl flex items-center justify-center',
@@ -433,7 +434,7 @@ export function Profile() {
               <motion.button
                 key={item.id}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => setCurrentPage('account-security')}
+                onClick={() => setCurrentPage(item.page)}
                 aria-label={`打开${item.name}`}
                 className={cn(
                   'w-full flex items-center justify-between p-4',

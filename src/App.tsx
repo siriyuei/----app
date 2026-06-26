@@ -41,9 +41,9 @@ function App() {
 
   const isDark = theme === 'dark';
 
-  // 已看过开屏则直接进入主界面（需等 persist 从本地存储恢复后再判断）
+  // 未登录时直接显示登录界面
   useEffect(() => {
-    const skipSplashIfNeeded = () => {
+    const checkAuthAndNavigate = () => {
       const { hasSeenSplash, currentPage } = useStore.getState();
       if (hasSeenSplash && currentPage === 'splash') {
         if (user) {
@@ -52,12 +52,15 @@ function App() {
           setCurrentPage('auth');
         }
       }
+      if (!user && currentPage !== 'auth' && currentPage !== 'splash') {
+        setCurrentPage('auth');
+      }
     };
     if (useStore.persist.hasHydrated()) {
-      skipSplashIfNeeded();
+      checkAuthAndNavigate();
     }
     return useStore.persist.onFinishHydration(() => {
-      skipSplashIfNeeded();
+      checkAuthAndNavigate();
     });
   }, [user, setCurrentPage]);
 
