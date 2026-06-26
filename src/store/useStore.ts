@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { famousImages } from '../constants/famousImages';
 import { postImages } from '../constants/postImages';
 
-export type Page = 'splash' | 'inkpool' | 'gathering' | 'market' | 'academy' | 'daily-character' | 'profile' | 'settings' | 'publish';
+export type Page = 'splash' | 'auth' | 'inkpool' | 'gathering' | 'market' | 'academy' | 'daily-character' | 'profile' | 'settings' | 'publish';
 
 export type Theme = 'light' | 'dark';
 
@@ -312,7 +312,7 @@ export const useStore = create<AppState>()(
       setCurrentPage: (currentPage) => set({ currentPage }),
       
       // 用户
-      user: mockUser,
+      user: null,
       setUser: (user) => set({ user }),
       
       // 发布面板

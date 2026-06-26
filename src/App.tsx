@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { Splash } from '@/pages/Splash';
+import { Auth } from '@/pages/Auth';
 import { InkPool } from '@/pages/InkPool';
 import { Gathering } from '@/pages/Gathering';
 import { Market } from '@/pages/Market';
@@ -15,6 +16,7 @@ import { DetailDialog } from '@/components/DetailDialog';
 import { PublishSuccessModal } from '@/components/PublishSuccessModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 // 页面过渡动画配置
 const pageTransition = {
@@ -33,16 +35,21 @@ const splashTransition = {
 };
 
 function App() {
-  const { currentPage, theme } = useStore();
+  const { currentPage, theme, setCurrentPage } = useStore();
+  const { user, loading: authLoading } = useAuth();
 
   const isDark = theme === 'dark';
 
   // 已看过开屏则直接进入主界面（需等 persist 从本地存储恢复后再判断）
   useEffect(() => {
     const skipSplashIfNeeded = () => {
-      const { hasSeenSplash, currentPage, setCurrentPage } = useStore.getState();
+      const { hasSeenSplash, currentPage } = useStore.getState();
       if (hasSeenSplash && currentPage === 'splash') {
-        setCurrentPage('inkpool');
+        if (user) {
+          setCurrentPage('inkpool');
+        } else {
+          setCurrentPage('auth');
+        }
       }
     };
     if (useStore.persist.hasHydrated()) {
@@ -51,7 +58,14 @@ function App() {
     return useStore.persist.onFinishHydration(() => {
       skipSplashIfNeeded();
     });
-  }, []);
+  }, [user, setCurrentPage]);
+
+  // 用户登录后自动跳转
+  useEffect(() => {
+    if (user && currentPage === 'auth') {
+      setCurrentPage('inkpool');
+    }
+  }, [user, currentPage, setCurrentPage]);
 
   // 应用主题
   useEffect(() => {
@@ -64,6 +78,16 @@ function App() {
     }
   }, [isDark]);
 
+  // 加载中显示空白
+  if (authLoading) {
+    return (
+      <div className={cn(
+        'min-h-screen',
+        isDark ? 'bg-ink-950' : 'bg-ink-50'
+      )} />
+    );
+  }
+
   // 渲染当前页面
   const renderPage = () => {
     switch (currentPage) {
@@ -71,6 +95,12 @@ function App() {
         return (
           <motion.div key="splash" {...splashTransition}>
             <Splash />
+          </motion.div>
+        );
+      case 'auth':
+        return (
+          <motion.div key="auth" {...pageTransition}>
+            <Auth />
           </motion.div>
         );
       case 'inkpool':

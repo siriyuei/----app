@@ -6,38 +6,212 @@ import {
   Heart,
   ShoppingBag,
   BookOpen,
-  SealCheck
+  SealCheck,
+  Log
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SmartImage } from '@/components/SmartImage';
+import { Button } from '@/components/ui/button';
 
 // 菜单项
 const menuItems = [
-  { id: 'works', name: '我的作品', icon: Images, count: 48 },
-  { id: 'favorites', name: '我的收藏', icon: Heart, count: 128 },
-  { id: 'orders', name: '我的订单', icon: ShoppingBag, count: 12 },
-  { id: 'learning', name: '学习记录', icon: BookOpen, count: 5 },
+  { id: 'works', name: '我的作品', icon: Images, count: 0 },
+  { id: 'favorites', name: '我的收藏', icon: Heart, count: 0 },
+  { id: 'orders', name: '我的订单', icon: ShoppingBag, count: 0 },
+  { id: 'learning', name: '学习记录', icon: BookOpen, count: 0 },
 ];
 
-// 作品展示
-const myWorks = [
-    { id: '1', image: '/images/work-calligraphy-1.jpg', title: '书法练习', likes: 128 },
-    { id: '2', image: '/images/work-painting-1.jpg', title: '山水意境', likes: 256 },
-    { id: '3', image: '/images/work-painting-2.jpg', title: '竹影清风', likes: 189 },
-    { id: '4', image: '/images/work-calligraphy-2.jpg', title: '兰亭序临摹', likes: 312 },
-    { id: '5', image: '/images/work-painting-3.jpg', title: '荷花清韵', likes: 445 },
-    { id: '6', image: '/images/work-calligraphy-1.jpg', title: '行书练习', likes: 98 },
+// 作品展示（未登录时的占位）
+const placeholderWorks = [
+    { id: '1', image: '/images/work-calligraphy-1.jpg', title: '', likes: 0 },
+    { id: '2', image: '/images/work-painting-1.jpg', title: '', likes: 0 },
+    { id: '3', image: '/images/work-painting-2.jpg', title: '', likes: 0 },
+    { id: '4', image: '/images/work-calligraphy-2.jpg', title: '', likes: 0 },
+    { id: '5', image: '/images/work-painting-3.jpg', title: '', likes: 0 },
+    { id: '6', image: '/images/work-calligraphy-1.jpg', title: '', likes: 0 },
   ];
 
 export function Profile() {
   const { user, theme, setCurrentPage } = useStore();
+  const { signOut } = useAuth();
 
   const isDark = theme === 'dark';
 
-  if (!user) return null;
+  // 未登录状态
+  if (!user) {
+    return (
+      <div className={cn(
+        'min-h-screen pb-24',
+        isDark ? 'bg-ink-950' : 'bg-ink-50'
+      )}>
+        {/* 顶部背景 */}
+        <div className={cn(
+          'h-40 relative',
+          'bg-gradient-to-b from-ink-800 to-ink-900'
+        )}>
+          {/* 设置按钮 */}
+          <button
+            onClick={() => setCurrentPage('settings')}
+            aria-label="打开设置"
+            className="absolute top-4 right-4 p-2 rounded-full bg-black/20 text-white/80 hover:bg-black/30"
+          >
+            <Gear className="w-5 h-5" />
+          </button>
+        </div>
 
+        {/* 登录提示卡片 */}
+        <div className="px-4 -mt-16 relative z-10">
+          <div className={cn(
+            'p-8 rounded-2xl text-center',
+            isDark ? 'bg-ink-900' : 'bg-white',
+            'shadow-ink-lg'
+          )}>
+            <div className={cn(
+              'w-20 h-20 rounded-full mx-auto mb-4',
+              isDark ? 'bg-ink-800' : 'bg-ink-100'
+            )}>
+              <span className={cn(
+                'text-4xl font-serif flex items-center justify-center h-full',
+                isDark ? 'text-ink-400' : 'text-ink-500'
+              )}>
+                客
+              </span>
+            </div>
+            
+            <h1 className={cn(
+              'text-xl font-bold mb-2',
+              isDark ? 'text-ink-100' : 'text-ink-900'
+            )}>
+              欢迎来到墨境
+            </h1>
+            <p className={cn(
+              'text-sm mb-6',
+              isDark ? 'text-ink-400' : 'text-ink-500'
+            )}>
+              登录后可以发布作品、参与互动
+            </p>
+            
+            <Button
+              onClick={() => setCurrentPage('auth')}
+              className={cn(
+                'w-full h-12 rounded-xl',
+                'bg-gradient-to-r from-ink-800 to-ink-900',
+                'hover:from-ink-700 hover:to-ink-800',
+                'text-white font-serif tracking-wider',
+                'dark:bg-gradient-to-r dark:from-ink-700 dark:to-ink-800',
+                'dark:hover:from-ink-600 dark:hover:to-ink-700'
+              )}
+            >
+              <Log className="w-4 h-4 mr-2" />
+              立即登录
+            </Button>
+          </div>
+        </div>
+
+        {/* 功能菜单（未登录状态） */}
+        <div className="px-4 mt-4">
+          <div className={cn(
+            'rounded-xl overflow-hidden',
+            isDark ? 'bg-ink-900' : 'bg-white',
+            'shadow-ink'
+          )}>
+            {menuItems.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <motion.button
+                  key={item.id}
+                  whileTap={{ scale: 0.99 }}
+                  aria-label={`打开${item.name}`}
+                  onClick={() => setCurrentPage('auth')}
+                  className={cn(
+                    'w-full flex items-center justify-between p-4 opacity-60 cursor-not-allowed',
+                    index !== menuItems.length - 1 && (isDark ? 'border-b border-ink-800' : 'border-b border-ink-100')
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      'w-10 h-10 rounded-xl flex items-center justify-center',
+                      isDark ? 'bg-ink-800' : 'bg-ink-100'
+                    )}>
+                      <Icon className={cn(
+                        'w-5 h-5',
+                        isDark ? 'text-ink-500' : 'text-ink-400'
+                      )} />
+                    </div>
+                    <span className={cn(
+                      'font-medium',
+                      isDark ? 'text-ink-500' : 'text-ink-500'
+                    )}>
+                      {item.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      'text-sm',
+                      isDark ? 'text-ink-600' : 'text-ink-400'
+                    )}>
+                      {item.count}
+                    </span>
+                    <CaretRight className={cn(
+                      'w-4 h-4',
+                      isDark ? 'text-ink-600' : 'text-ink-400'
+                    )} />
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 作品展示（未登录状态） */}
+        <div className="px-4 mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={cn(
+              'text-sm font-medium',
+              isDark ? 'text-ink-400' : 'text-ink-600'
+            )}>
+              我的作品
+            </h2>
+            <button
+              onClick={() => setCurrentPage('auth')}
+              className={cn(
+              'text-xs flex items-center gap-1',
+              isDark ? 'text-ink-500' : 'text-ink-500'
+              )}
+            >
+              登录查看
+              <CaretRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {placeholderWorks.map((work, index) => (
+              <motion.div
+                key={work.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 0.3, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className={cn(
+                  'aspect-square rounded-lg overflow-hidden relative',
+                  isDark ? 'bg-ink-800' : 'bg-ink-100'
+                )}
+              >
+                <SmartImage
+                  src={work.image}
+                  alt={work.title}
+                  className="w-full h-full object-cover grayscale"
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 已登录状态
   return (
     <div className={cn(
       'min-h-screen pb-24',
@@ -193,6 +367,17 @@ export function Profile() {
               </motion.button>
             );
           })}
+          {/* 退出登录 */}
+          <motion.button
+            whileTap={{ scale: 0.99 }}
+            onClick={() => signOut()}
+            className={cn(
+              'w-full flex items-center justify-between p-4',
+              'text-red-500 border-t border-ink-800 dark:border-ink-800'
+            )}
+          >
+            <span className="font-medium">退出登录</span>
+          </motion.button>
         </div>
       </div>
 
@@ -217,7 +402,7 @@ export function Profile() {
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {myWorks.map((work, index) => (
+          {placeholderWorks.map((work, index) => (
             <motion.div
               key={work.id}
               initial={{ opacity: 0, scale: 0.9 }}
