@@ -137,7 +137,6 @@ export function useAuth() {
   const updateUser = useCallback(async (updates: { username?: string; avatar?: string; bio?: string }) => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     
-    // 更新 auth 用户元数据
     const { data, error } = await supabase.auth.updateUser({
       data: updates,
     });
@@ -147,7 +146,6 @@ export function useAuth() {
       return { success: false, error: error.message };
     }
 
-    // 同时更新 profiles 表
     if (data.user) {
       await supabase
         .from('profiles')
@@ -165,6 +163,53 @@ export function useAuth() {
     return { success: true, user: data.user };
   }, []);
 
+  // 更新用户资料（昵称和签名）
+  const updateUserProfile = useCallback(async (name: string, bio: string) => {
+    setState((prev) => ({ ...prev, loading: true, error: null }));
+    
+    const { data, error } = await supabase.auth.updateUser({
+      data: { username: name, bio },
+    });
+
+    if (error) {
+      setState((prev) => ({ ...prev, loading: false, error: error.message }));
+      return { success: false, error: error.message };
+    }
+
+    if (data.user) {
+      await supabase
+        .from('profiles')
+        .update({ username: name, bio })
+        .eq('id', data.user.id);
+    }
+
+    setState((prev) => ({
+      ...prev,
+      user: data.user,
+      loading: false,
+      error: null,
+    }));
+
+    return { success: true };
+  }, []);
+
+  // 更新密码
+  const updatePassword = useCallback(async (newPassword: string) => {
+    setState((prev) => ({ ...prev, loading: true, error: null }));
+    
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      setState((prev) => ({ ...prev, loading: false, error: error.message }));
+      return { success: false, error: error.message };
+    }
+
+    setState((prev) => ({ ...prev, loading: false, error: null }));
+    return { success: true };
+  }, []);
+
   return {
     ...state,
     signUpWithEmail,
@@ -172,6 +217,8 @@ export function useAuth() {
     signOut,
     resetPassword,
     updateUser,
+    updateUserProfile,
+    updatePassword,
     isAuthenticated: !!state.user,
   };
 }

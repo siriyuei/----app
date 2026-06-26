@@ -13,6 +13,7 @@ import {
   SignOut
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 
@@ -44,6 +45,7 @@ const settingGroups = [
 
 export function Settings() {
   const { theme, setTheme, setCurrentPage } = useStore();
+  const { signOut } = useAuth();
 
   const isDark = theme === 'dark';
 
@@ -195,6 +197,7 @@ export function Settings() {
       <div className="px-4 mt-8 mb-8">
         <motion.button
           whileTap={{ scale: 0.98 }}
+          onClick={() => signOut()}
           className={cn(
             'w-full p-4 rounded-xl flex items-center justify-center gap-2',
             'bg-cinnabar/10 text-cinnabar',

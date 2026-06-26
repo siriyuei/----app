@@ -9,6 +9,7 @@ import { Market } from '@/pages/Market';
 import { Academy } from '@/pages/Academy';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
+import { AccountSecurity } from '@/pages/AccountSecurity';
 import { DailyCharacter } from '@/pages/DailyCharacter';
 import { BottomNav } from '@/components/BottomNav';
 import { PublishSheet } from '@/components/PublishSheet';
@@ -143,6 +144,12 @@ function App() {
         return (
           <motion.div key="settings" {...pageTransition}>
             <Settings />
+          </motion.div>
+        );
+      case 'account-security':
+        return (
+          <motion.div key="account-security" {...pageTransition}>
+            <AccountSecurity />
           </motion.div>
         );
       default:

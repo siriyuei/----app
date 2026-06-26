@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Gear,
@@ -7,7 +8,14 @@ import {
   ShoppingBag,
   BookOpen,
   SealCheck,
-  Log
+  Log,
+  Pencil,
+  Shield,
+  Lock,
+  DeviceMobile,
+  Check,
+  X,
+  FloppyDisk
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,8 +23,9 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SmartImage } from '@/components/SmartImage';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// 菜单项
 const menuItems = [
   { id: 'works', name: '我的作品', icon: Images, count: 0 },
   { id: 'favorites', name: '我的收藏', icon: Heart, count: 0 },
@@ -24,7 +33,12 @@ const menuItems = [
   { id: 'learning', name: '学习记录', icon: BookOpen, count: 0 },
 ];
 
-// 作品展示（未登录时的占位）
+const accountMenuItems = [
+  { id: 'security', name: '账号安全', icon: Shield, desc: '修改密码、绑定邮箱' },
+  { id: 'password', name: '修改密码', icon: Lock, desc: '设置新密码' },
+  { id: 'devices', name: '登录设备', icon: DeviceMobile, desc: '管理登录设备' },
+];
+
 const placeholderWorks = [
     { id: '1', image: '/images/work-calligraphy-1.jpg', title: '', likes: 0 },
     { id: '2', image: '/images/work-painting-1.jpg', title: '', likes: 0 },
@@ -36,23 +50,52 @@ const placeholderWorks = [
 
 export function Profile() {
   const { user, theme, setCurrentPage } = useStore();
-  const { signOut } = useAuth();
+  const { signOut, updateUserProfile } = useAuth();
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    bio: '',
+  });
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState(false);
 
   const isDark = theme === 'dark';
 
-  // 未登录状态
+  const handleStartEdit = () => {
+    if (user) {
+      setEditForm({ name: user.name, bio: user.bio });
+      setIsEditing(true);
+      setEditError('');
+      setEditSuccess(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user) return;
+    
+    const result = await updateUserProfile(editForm.name, editForm.bio);
+    if (result.success) {
+      setEditSuccess(true);
+      setTimeout(() => {
+        setIsEditing(false);
+        setEditSuccess(false);
+      }, 1500);
+    } else {
+      setEditError(result.error || '保存失败');
+    }
+  };
+
   if (!user) {
     return (
       <div className={cn(
         'min-h-screen pb-24',
         isDark ? 'bg-ink-950' : 'bg-ink-50'
       )}>
-        {/* 顶部背景 */}
         <div className={cn(
           'h-40 relative',
           'bg-gradient-to-b from-ink-800 to-ink-900'
         )}>
-          {/* 设置按钮 */}
           <button
             onClick={() => setCurrentPage('settings')}
             aria-label="打开设置"
@@ -62,7 +105,6 @@ export function Profile() {
           </button>
         </div>
 
-        {/* 登录提示卡片 */}
         <div className="px-4 -mt-16 relative z-10">
           <div className={cn(
             'p-8 rounded-2xl text-center',
@@ -111,7 +153,6 @@ export function Profile() {
           </div>
         </div>
 
-        {/* 功能菜单（未登录状态） */}
         <div className="px-4 mt-4">
           <div className={cn(
             'rounded-xl overflow-hidden',
@@ -166,7 +207,6 @@ export function Profile() {
           </div>
         </div>
 
-        {/* 作品展示（未登录状态） */}
         <div className="px-4 mt-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className={cn(
@@ -211,18 +251,15 @@ export function Profile() {
     );
   }
 
-  // 已登录状态
   return (
     <div className={cn(
       'min-h-screen pb-24',
       isDark ? 'bg-ink-950' : 'bg-ink-50'
     )}>
-      {/* 顶部背景 */}
       <div className={cn(
         'h-40 relative',
         'bg-gradient-to-b from-ink-800 to-ink-900'
       )}>
-        {/* 设置按钮 */}
         <button
           onClick={() => setCurrentPage('settings')}
           aria-label="打开设置"
@@ -232,7 +269,6 @@ export function Profile() {
         </button>
       </div>
 
-      {/* 个人信息卡片 */}
       <div className="px-4 -mt-16 relative z-10">
         <div className={cn(
           'p-5 rounded-2xl',
@@ -240,13 +276,11 @@ export function Profile() {
           'shadow-ink-lg'
         )}>
           <div className="flex items-start gap-4">
-            {/* 头像 */}
             <Avatar className="w-20 h-20 border-4 border-white dark:border-ink-900">
               <AvatarImage src={user.avatar} />
               <AvatarFallback>{user.name[0]}</AvatarFallback>
             </Avatar>
             
-            {/* 信息 */}
             <div className="flex-1 pt-1">
               <div className="flex items-center gap-2">
                 <h1 className={cn(
@@ -258,6 +292,19 @@ export function Profile() {
                 {user.isVerified && (
                   <SealCheck className="w-5 h-5 text-blue-500" />
                 )}
+                <button
+                  onClick={handleStartEdit}
+                  aria-label="编辑资料"
+                  className={cn(
+                    'p-1 rounded-full',
+                    isDark ? 'hover:bg-ink-800' : 'hover:bg-ink-100'
+                  )}
+                >
+                  <Pencil className={cn(
+                    'w-4 h-4',
+                    isDark ? 'text-ink-500' : 'text-ink-400'
+                  )} />
+                </button>
               </div>
               <p className={cn(
                 'text-sm mt-1',
@@ -268,7 +315,6 @@ export function Profile() {
             </div>
           </div>
 
-          {/* 数据统计 */}
           <div className="flex items-center justify-around mt-6 pt-6 border-t border-ink-100 dark:border-ink-800">
             <div className="text-center">
               <p className={cn(
@@ -316,7 +362,6 @@ export function Profile() {
         </div>
       </div>
 
-      {/* 功能菜单 */}
       <div className="px-4 mt-4">
         <div className={cn(
           'rounded-xl overflow-hidden',
@@ -367,21 +412,69 @@ export function Profile() {
               </motion.button>
             );
           })}
-          {/* 退出登录 */}
-          <motion.button
-            whileTap={{ scale: 0.99 }}
-            onClick={() => signOut()}
-            className={cn(
-              'w-full flex items-center justify-between p-4',
-              'text-red-500 border-t border-ink-800 dark:border-ink-800'
-            )}
-          >
-            <span className="font-medium">退出登录</span>
-          </motion.button>
         </div>
       </div>
 
-      {/* 作品展示 */}
+      <div className="px-4 mt-4">
+        <h2 className={cn(
+          'text-xs font-medium mb-2 px-1',
+          isDark ? 'text-ink-500' : 'text-ink-500'
+        )}>
+          账号管理
+        </h2>
+        <div className={cn(
+          'rounded-xl overflow-hidden',
+          isDark ? 'bg-ink-900' : 'bg-white',
+          'shadow-ink'
+        )}>
+          {accountMenuItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <motion.button
+                key={item.id}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setCurrentPage('account-security')}
+                aria-label={`打开${item.name}`}
+                className={cn(
+                  'w-full flex items-center justify-between p-4',
+                  index !== accountMenuItems.length - 1 && (isDark ? 'border-b border-ink-800' : 'border-b border-ink-100')
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'w-10 h-10 rounded-xl flex items-center justify-center',
+                    isDark ? 'bg-ink-800' : 'bg-ink-100'
+                  )}>
+                    <Icon className={cn(
+                      'w-5 h-5',
+                      isDark ? 'text-ink-300' : 'text-ink-600'
+                    )} />
+                  </div>
+                  <div>
+                    <span className={cn(
+                      'font-medium block',
+                      isDark ? 'text-ink-200' : 'text-ink-800'
+                    )}>
+                      {item.name}
+                    </span>
+                    <span className={cn(
+                      'text-xs',
+                      isDark ? 'text-ink-500' : 'text-ink-500'
+                    )}>
+                      {item.desc}
+                    </span>
+                  </div>
+                </div>
+                <CaretRight className={cn(
+                  'w-4 h-4',
+                  isDark ? 'text-ink-600' : 'text-ink-400'
+                )} />
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="px-4 mt-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className={cn(
@@ -418,7 +511,6 @@ export function Profile() {
                 alt={work.title}
                 className="w-full h-full object-cover"
               />
-              {/* 悬停遮罩 */}
               <div className={cn(
                 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100',
                 'transition-opacity duration-300',
@@ -433,6 +525,136 @@ export function Profile() {
           ))}
         </div>
       </div>
+
+      <div className="px-4 mt-6">
+        <motion.button
+          whileTap={{ scale: 0.99 }}
+          onClick={() => signOut()}
+          className={cn(
+            'w-full p-4 rounded-xl',
+            'bg-red-50 dark:bg-red-900/20',
+            'text-red-500',
+            'hover:bg-red-100 dark:hover:bg-red-900/30'
+          )}
+        >
+          退出登录
+        </motion.button>
+      </div>
+
+      {isEditing && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setIsEditing(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'w-full max-w-sm p-6 rounded-2xl',
+              isDark ? 'bg-ink-900' : 'bg-white',
+              'shadow-lg'
+            )}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={cn(
+                'text-lg font-bold',
+                isDark ? 'text-ink-100' : 'text-ink-900'
+              )}>
+                编辑资料
+              </h3>
+              <button
+                onClick={() => setIsEditing(false)}
+                aria-label="关闭"
+                className={cn(
+                  'p-1 rounded-full',
+                  isDark ? 'hover:bg-ink-800' : 'hover:bg-ink-100'
+                )}
+              >
+                <X className={cn(
+                  'w-5 h-5',
+                  isDark ? 'text-ink-500' : 'text-ink-500'
+                )} />
+              </button>
+            </div>
+
+            {editError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{editError}</AlertDescription>
+              </Alert>
+            )}
+
+            {editSuccess && (
+              <Alert className="mb-4 bg-green-100 text-green-700">
+                <AlertDescription className="flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  保存成功
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className={cn(
+                  'text-sm font-medium block mb-2',
+                  isDark ? 'text-ink-300' : 'text-ink-700'
+                )}>
+                  昵称
+                </label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className={cn(
+                    isDark ? 'bg-ink-800 border-ink-700' : '',
+                    'focus:dark:ring-ink-600'
+                  )}
+                />
+              </div>
+              <div>
+                <label className={cn(
+                  'text-sm font-medium block mb-2',
+                  isDark ? 'text-ink-300' : 'text-ink-700'
+                )}>
+                  签名
+                </label>
+                <Input
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                  placeholder="写下你的个性签名..."
+                  className={cn(
+                    isDark ? 'bg-ink-800 border-ink-700' : '',
+                    'focus:dark:ring-ink-600'
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(false)}
+                className={cn(
+                  'flex-1',
+                  isDark ? 'border-ink-700' : ''
+                )}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                className="flex-1 bg-ink-800 hover:bg-ink-700"
+              >
+                <FloppyDisk className="w-4 h-4 mr-2" />
+                保存
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }

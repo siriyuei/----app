@@ -4,7 +4,8 @@ import {
   Users, 
   Storefront, 
   GraduationCap,
-  Plus
+  Plus,
+  User
 } from '@phosphor-icons/react';
 import { useStore, type Page } from '@/store/useStore';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const navItems: NavItem[] = [
   { id: 'gathering', label: '雅集', icon: Users },
   { id: 'market', label: '墨宝阁', icon: Storefront },
   { id: 'academy', label: '书院', icon: GraduationCap },
+  { id: 'profile', label: '我的', icon: User },
 ];
 
 export function BottomNav() {

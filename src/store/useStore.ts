@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { famousImages } from '../constants/famousImages';
 import { postImages } from '../constants/postImages';
 
-export type Page = 'splash' | 'auth' | 'inkpool' | 'gathering' | 'market' | 'academy' | 'daily-character' | 'profile' | 'settings' | 'publish';
+export type Page = 'splash' | 'auth' | 'inkpool' | 'gathering' | 'market' | 'academy' | 'daily-character' | 'profile' | 'settings' | 'account-security' | 'publish';
 
 export type Theme = 'light' | 'dark';
 
@@ -12,6 +12,7 @@ export interface User {
   name: string;
   avatar: string;
   bio: string;
+  email: string;
   followers: number;
   following: number;
   works: number;
@@ -126,6 +127,7 @@ const mockUser: User = {
   name: '墨香书客',
   avatar: '/images/avatar-1.jpg',
   bio: '一笔一世界，墨染千重山',
+  email: 'moxiang@example.com',
   followers: 1280,
   following: 365,
   works: 48,
@@ -137,6 +139,7 @@ const mockUser2: User = {
   name: '清风雅士',
   avatar: '/images/avatar-2.jpg',
   bio: '清风徐来，笔墨生香',
+  email: 'qingfeng@example.com',
   followers: 890,
   following: 245,
   works: 32,
@@ -148,6 +151,7 @@ const mockUser3: User = {
   name: '竹林隐士',
   avatar: '/images/avatar-1.jpg',
   bio: '竹影清风，心旷神怡',
+  email: 'zhulin@example.com',
   followers: 456,
   following: 123,
   works: 18,
