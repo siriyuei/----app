@@ -10,16 +10,13 @@ import {
   Moon,
   Building,
   Mountains,
-  BookOpen,
-  Spinner
+  BookOpen
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
-import { usePosts } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { SmartImage } from '@/components/SmartImage';
-import { useAuth } from '@/hooks/useAuth';
 
 // 话题标签
 const topics = [
@@ -59,15 +56,13 @@ const events = [
 ];
 
 export function Gathering() {
-  const { theme, toggleLike, likedItems, setDialogItem } = useStore();
-  const { user } = useAuth();
-  const { posts, loading, error } = usePosts(user);
+  const { theme, posts, toggleLike, likedItems, setDialogItem } = useStore();
   const [activeTopic, setActiveTopic] = useState('spring');
 
   const isDark = theme === 'dark';
 
   const handlePostClick = (post: typeof posts[0]) => {
-    setDialogItem({ type: 'post', data: post as any });
+    setDialogItem({ type: 'post', data: post });
   };
 
   const handleLike = (e: React.MouseEvent, postId: string) => {
@@ -201,161 +196,136 @@ export function Gathering() {
           最新动态
         </h2>
         <div className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner className="w-8 h-8 animate-spin text-cinnabar" />
-            </div>
-          ) : error ? (
-            <div className={cn(
-              'text-center py-12',
-              isDark ? 'text-ink-400' : 'text-ink-500'
-            )}>
-              <p>加载失败：{error}</p>
-            </div>
-          ) : posts.length === 0 ? (
-            <div className={cn(
-              'text-center py-12',
-              isDark ? 'text-ink-400' : 'text-ink-500'
-            )}>
-              <p>暂无动态，快来发布你的第一条动态吧！</p>
-            </div>
-          ) : (
-            posts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => handlePostClick(post)}
-                className={cn(
-                  'rounded-xl overflow-hidden cursor-pointer',
-                  isDark ? 'bg-ink-900' : 'bg-white',
-                  'shadow-ink',
-                  'hover:shadow-lg transition-shadow'
-                )}
-              >
-                {/* 作者信息 */}
-                <div className="p-4 flex items-center gap-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={post.author?.avatar} />
-                    <AvatarFallback>{post.author?.name[0] || '?'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        'font-medium text-sm',
-                        isDark ? 'text-ink-200' : 'text-ink-800'
-                      )}>
-                        {post.author?.name || '匿名用户'}
-                      </span>
-                      {post.author?.isVerified && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          认证
-                        </Badge>
-                      )}
-                    </div>
+          {posts.map((post, index) => (
+            <motion.div
+              key={post.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              onClick={() => handlePostClick(post)}
+              className={cn(
+                'rounded-xl overflow-hidden cursor-pointer',
+                isDark ? 'bg-ink-900' : 'bg-white',
+                'shadow-ink',
+                'hover:shadow-lg transition-shadow'
+              )}
+            >
+              {/* 作者信息 */}
+              <div className="p-4 flex items-center gap-3">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={post.author.avatar} />
+                  <AvatarFallback>{post.author.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
                     <span className={cn(
-                      'text-xs',
+                      'font-medium text-sm',
+                      isDark ? 'text-ink-200' : 'text-ink-800'
+                    )}>
+                      {post.author.name}
+                    </span>
+                    {post.author.isVerified && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        认证
+                      </Badge>
+                    )}
+                  </div>
+                  <span className={cn(
+                    'text-xs',
+                    isDark ? 'text-ink-500' : 'text-ink-500'
+                  )}>
+                    {post.createdAt}
+                  </span>
+                </div>
+              </div>
+
+              {/* 内容 */}
+              <div className="px-4 pb-3">
+                <p className={cn(
+                  'text-sm leading-relaxed',
+                  isDark ? 'text-ink-300' : 'text-ink-700'
+                )}>
+                  {post.content}
+                </p>
+                {/* 标签 */}
+                <div className="flex gap-2 mt-2">
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className={cn(
+                        'text-xs px-2 py-0.5 rounded-full',
+                        isDark ? 'bg-ink-800 text-ink-400' : 'bg-ink-100 text-ink-600'
+                      )}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* 图片 */}
+              {post.image && (
+                <div className="aspect-[16/10] overflow-hidden">
+                  <SmartImage
+                    src={post.image}
+                    alt="作品"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* 互动按钮 */}
+              <div className={cn(
+                'p-4 flex items-center justify-between border-t',
+                isDark ? 'border-ink-800' : 'border-ink-100'
+              )}>
+                <div className="flex items-center gap-6">
+                  <button
+                    onClick={(e) => handleLike(e, post.id)}
+                    className="flex items-center gap-2"
+                  >
+                    <Heart
+                      weight={likedItems.includes(post.id) ? 'fill' : 'regular'}
+                      className={cn(
+                        'w-5 h-5 transition-colors',
+                        likedItems.includes(post.id) ? 'text-cinnabar' : (isDark ? 'text-ink-500' : 'text-ink-400')
+                      )}
+                    />
+                    <span className={cn(
+                      'text-sm',
                       isDark ? 'text-ink-500' : 'text-ink-500'
                     )}>
-                      {new Date(post.created_at).toLocaleDateString('zh-CN', { 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {post.likes + (likedItems.includes(post.id) ? 1 : 0)}
                     </span>
-                  </div>
+                  </button>
+                  <button className="flex items-center gap-2">
+                    <ChatCircle className={cn(
+                      'w-5 h-5',
+                      isDark ? 'text-ink-500' : 'text-ink-400'
+                    )} />
+                    <span className={cn(
+                      'text-sm',
+                      isDark ? 'text-ink-500' : 'text-ink-500'
+                    )}>
+                      {post.comments}
+                    </span>
+                  </button>
+                  <button className="flex items-center gap-2">
+                    <ShareNetwork className={cn(
+                      'w-5 h-5',
+                      isDark ? 'text-ink-500' : 'text-ink-400'
+                    )} />
+                    <span className={cn(
+                      'text-sm',
+                      isDark ? 'text-ink-500' : 'text-ink-500'
+                    )}>
+                      {post.shares}
+                    </span>
+                  </button>
                 </div>
-
-                {/* 内容 */}
-                <div className="px-4 pb-3">
-                  <p className={cn(
-                    'text-sm leading-relaxed',
-                    isDark ? 'text-ink-300' : 'text-ink-700'
-                  )}>
-                    {post.content}
-                  </p>
-                  {/* 标签 */}
-                  <div className="flex gap-2 mt-2">
-                    {(post.tags || []).map((tag) => (
-                      <span
-                        key={tag}
-                        className={cn(
-                          'text-xs px-2 py-0.5 rounded-full',
-                          isDark ? 'bg-ink-800 text-ink-400' : 'bg-ink-100 text-ink-600'
-                        )}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 图片 */}
-                {post.image && (
-                  <div className="aspect-[16/10] overflow-hidden">
-                    <SmartImage
-                      src={post.image}
-                      alt="作品"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* 互动按钮 */}
-                <div className={cn(
-                  'p-4 flex items-center justify-between border-t',
-                  isDark ? 'border-ink-800' : 'border-ink-100'
-                )}>
-                  <div className="flex items-center gap-6">
-                    <button
-                      onClick={(e) => handleLike(e, post.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <Heart
-                        weight={likedItems.includes(post.id) ? 'fill' : 'regular'}
-                        className={cn(
-                          'w-5 h-5 transition-colors',
-                          likedItems.includes(post.id) ? 'text-cinnabar' : (isDark ? 'text-ink-500' : 'text-ink-400')
-                        )}
-                      />
-                      <span className={cn(
-                        'text-sm',
-                        isDark ? 'text-ink-500' : 'text-ink-500'
-                      )}>
-                        {post.likes + (likedItems.includes(post.id) ? 1 : 0)}
-                      </span>
-                    </button>
-                    <button className="flex items-center gap-2">
-                      <ChatCircle className={cn(
-                        'w-5 h-5',
-                        isDark ? 'text-ink-500' : 'text-ink-400'
-                      )} />
-                      <span className={cn(
-                        'text-sm',
-                        isDark ? 'text-ink-500' : 'text-ink-500'
-                      )}>
-                        {post.comments}
-                      </span>
-                    </button>
-                    <button className="flex items-center gap-2">
-                      <ShareNetwork className={cn(
-                        'w-5 h-5',
-                        isDark ? 'text-ink-500' : 'text-ink-400'
-                      )} />
-                      <span className={cn(
-                        'text-sm',
-                        isDark ? 'text-ink-500' : 'text-ink-500'
-                      )}>
-                        {post.shares}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
     </div>

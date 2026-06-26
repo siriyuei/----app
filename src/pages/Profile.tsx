@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Gear,
@@ -7,6 +7,7 @@ import {
   Heart,
   ShoppingBag,
   BookOpen,
+  SealCheck,
   Log,
   Pencil,
   Shield,
@@ -14,25 +15,16 @@ import {
   DeviceMobile,
   Check,
   X,
-  FloppyDisk,
-  Spinner
+  FloppyDisk
 } from '@phosphor-icons/react';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
-import type { Work } from '@/hooks/useDatabase';
-import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SmartImage } from '@/components/SmartImage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface ProfileData {
-  username: string;
-  avatar: string | null;
-  bio: string | null;
-}
 
 const menuItems = [
   { id: 'works', name: '我的作品', icon: Images, count: 0 },
@@ -57,8 +49,8 @@ const placeholderWorks = [
   ];
 
 export function Profile() {
-  const { theme, setCurrentPage, likedItems, setDialogItem } = useStore();
-  const { user: authUser, signOut, updateUserProfile } = useAuth();
+  const { user, theme, setCurrentPage } = useStore();
+  const { signOut, updateUserProfile } = useAuth();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -67,59 +59,12 @@ export function Profile() {
   });
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState(false);
-  
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [userWorks, setUserWorks] = useState<Work[]>([]);
-  const [worksLoading, setWorksLoading] = useState(true);
 
   const isDark = theme === 'dark';
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!authUser) return;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, avatar, bio')
-        .eq('id', authUser.id)
-        .single();
-      
-      if (error) {
-        console.error('获取用户资料失败:', error);
-      } else {
-        setProfileData({
-          username: data?.username || authUser.email?.split('@')[0] || '用户',
-          avatar: data?.avatar || null,
-          bio: data?.bio || null,
-        });
-      }
-    };
-
-    const fetchUserWorks = async () => {
-      if (!authUser) return;
-      
-      setWorksLoading(true);
-      const { data, error } = await supabase
-        .from('works')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('获取用户作品失败:', error);
-      } else {
-        setUserWorks(data || []);
-      }
-      setWorksLoading(false);
-    };
-
-    fetchProfile();
-    fetchUserWorks();
-  }, [authUser]);
-
   const handleStartEdit = () => {
-    if (profileData) {
-      setEditForm({ name: profileData.username, bio: profileData.bio || '' });
+    if (user) {
+      setEditForm({ name: user.name, bio: user.bio });
       setIsEditing(true);
       setEditError('');
       setEditSuccess(false);
@@ -127,15 +72,10 @@ export function Profile() {
   };
 
   const handleSaveEdit = async () => {
-    if (!authUser) return;
+    if (!user) return;
     
     const result = await updateUserProfile(editForm.name, editForm.bio);
     if (result.success) {
-      setProfileData(prev => prev ? {
-        ...prev,
-        username: editForm.name,
-        bio: editForm.bio,
-      } : null);
       setEditSuccess(true);
       setTimeout(() => {
         setIsEditing(false);
@@ -146,11 +86,7 @@ export function Profile() {
     }
   };
 
-  const handleWorkClick = (work: Work) => {
-    setDialogItem({ type: 'work', data: work as any });
-  };
-
-  if (!authUser) {
+  if (!user) {
     return (
       <div className={cn(
         'min-h-screen pb-24',
@@ -341,8 +277,8 @@ export function Profile() {
         )}>
           <div className="flex items-start gap-4">
             <Avatar className="w-20 h-20 border-4 border-white dark:border-ink-900">
-              <AvatarImage src={profileData?.avatar || undefined} />
-              <AvatarFallback>{profileData?.username[0] || '?'}</AvatarFallback>
+              <AvatarImage src={user.avatar} />
+              <AvatarFallback>{user.name[0]}</AvatarFallback>
             </Avatar>
             
             <div className="flex-1 pt-1">
@@ -351,8 +287,11 @@ export function Profile() {
                   'text-xl font-bold',
                   isDark ? 'text-ink-100' : 'text-ink-900'
                 )}>
-                  {profileData?.username || '加载中...'}
+                  {user.name}
                 </h1>
+                {user.isVerified && (
+                  <SealCheck className="w-5 h-5 text-blue-500" />
+                )}
                 <button
                   onClick={handleStartEdit}
                   aria-label="编辑资料"
@@ -371,7 +310,7 @@ export function Profile() {
                 'text-sm mt-1',
                 isDark ? 'text-ink-400' : 'text-ink-500'
               )}>
-                {profileData?.bio || '暂无签名'}
+                {user.bio}
               </p>
             </div>
           </div>
@@ -382,7 +321,7 @@ export function Profile() {
                 'text-xl font-bold',
                 isDark ? 'text-ink-100' : 'text-ink-900'
               )}>
-                {userWorks.length}
+                {user.works}
               </p>
               <p className={cn(
                 'text-xs mt-1',
@@ -396,7 +335,7 @@ export function Profile() {
                 'text-xl font-bold',
                 isDark ? 'text-ink-100' : 'text-ink-900'
               )}>
-                0
+                {user.followers}
               </p>
               <p className={cn(
                 'text-xs mt-1',
@@ -410,7 +349,7 @@ export function Profile() {
                 'text-xl font-bold',
                 isDark ? 'text-ink-100' : 'text-ink-900'
               )}>
-                0
+                {user.following}
               </p>
               <p className={cn(
                 'text-xs mt-1',
@@ -556,56 +495,34 @@ export function Profile() {
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {worksLoading ? (
-            <div className="col-span-3 flex items-center justify-center py-8">
-              <Spinner className="w-6 h-6 animate-spin text-cinnabar" />
-            </div>
-          ) : userWorks.length === 0 ? (
-            <div className="col-span-3 text-center py-8">
-              <p className={cn(
-                'text-sm',
-                isDark ? 'text-ink-500' : 'text-ink-500'
+          {placeholderWorks.map((work, index) => (
+            <motion.div
+              key={work.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 }}
+              className={cn(
+                'aspect-square rounded-lg overflow-hidden relative group',
+                'shadow-ink hover:shadow-lg transition-shadow'
+              )}
+            >
+              <SmartImage
+                src={work.image}
+                alt={work.title}
+                className="w-full h-full object-cover"
+              />
+              <div className={cn(
+                'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100',
+                'transition-opacity duration-300',
+                'flex items-center justify-center'
               )}>
-                暂无作品，快来发布吧！
-              </p>
-            </div>
-          ) : (
-            userWorks.map((work, index) => (
-              <motion.div
-                key={work.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => handleWorkClick(work)}
-                className={cn(
-                  'aspect-square rounded-lg overflow-hidden relative group cursor-pointer',
-                  'shadow-ink hover:shadow-lg transition-shadow'
-                )}
-              >
-                <SmartImage
-                  src={work.image || undefined}
-                  alt={work.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className={cn(
-                  'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100',
-                  'transition-opacity duration-300',
-                  'flex items-center justify-center'
-                )}>
-                  <div className="flex items-center gap-2 text-white">
-                    <Heart 
-                      weight={likedItems.includes(work.id) ? 'fill' : 'regular'}
-                      className={cn(
-                        'w-4 h-4',
-                        likedItems.includes(work.id) ? 'text-cinnabar' : 'text-white'
-                      )} 
-                    />
-                    <span className="text-xs">{work.likes + (likedItems.includes(work.id) ? 1 : 0)}</span>
-                  </div>
+                <div className="flex items-center gap-2 text-white">
+                  <Heart weight="fill" className="w-4 h-4 text-cinnabar" />
+                  <span className="text-xs">{work.likes}</span>
                 </div>
-              </motion.div>
-            ))
-          )}
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
 

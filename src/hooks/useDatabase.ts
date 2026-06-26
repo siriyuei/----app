@@ -14,7 +14,6 @@ export interface Work {
   shares: number;
   tags: string[] | null;
   created_at: string;
-  createdAt: string;
   updated_at: string;
   author?: {
     name: string;
@@ -34,9 +33,8 @@ export interface Post {
   comments: number;
   shares: number;
   tags: string[] | null;
-  type: 'calligraphy' | 'painting' | 'poetry';
+  type: string;
   created_at: string;
-  createdAt: string;
   updated_at: string;
   author?: {
     name: string;
@@ -70,10 +68,6 @@ export function useWorks(user: User | null) {
       // 转换数据格式
       const formattedWorks = (data || []).map((work: any) => ({
         ...work,
-        createdAt: work.created_at,
-        content: work.content || '',
-        image: work.image || '',
-        tags: work.tags || [],
         author: {
           name: work.profiles?.username || '匿名用户',
           avatar: work.profiles?.avatar || '/images/avatar-1.jpg',
@@ -254,12 +248,6 @@ export function usePosts(user: User | null) {
       // 转换数据格式
       const formattedPosts = (data || []).map((post: any) => ({
         ...post,
-        createdAt: post.created_at,
-        title: post.title || '',
-        content: post.content || '',
-        image: post.image || '',
-        tags: post.tags || [],
-        type: (post.type || 'post') as 'calligraphy' | 'painting' | 'poetry',
         author: {
           name: post.profiles?.username || '匿名用户',
           avatar: post.profiles?.avatar || '/images/avatar-1.jpg',
