@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { authUserToAppUser } from '@/lib/authUser';
+import { authUserToAppUser, ensureUserProfile } from '@/lib/authUser';
 import { useAuth } from '@/hooks/useAuth';
 import { usePosts, useWorks } from '@/hooks/useDatabase';
 import { useStorage } from '@/hooks/useStorage';
@@ -180,9 +180,15 @@ export function PublishSheet() {
     // 使用上传的图片或默认图片
     let imageUrl = uploadedImage || `/images/work-${activeType}-1.jpg`;
     let databaseSaved = false;
+    let databaseError = '';
 
     if (authUser) {
       try {
+        const profileResult = await ensureUserProfile(authUser);
+        if (!profileResult.success) {
+          throw new Error(profileResult.error || '用户资料同步失败');
+        }
+
         if (uploadedFile) {
           const optimizedFile = await compressFileForUpload(uploadedFile, 1200, 1200, 0.82);
           const uploadResult = await uploadWorkImage(optimizedFile);
@@ -212,15 +218,17 @@ export function PublishSheet() {
         databaseSaved = workResult.success && postResult.success;
 
         if (!databaseSaved) {
-          console.warn('数据库保存失败，已使用本地兜底:', workResult.error || postResult.error);
+          databaseError = workResult.error || postResult.error || '数据库写入失败';
+          console.warn('数据库保存失败:', databaseError);
         }
       } catch (error) {
-        console.warn('数据库保存失败，已使用本地兜底:', error);
+        databaseError = error instanceof Error ? error.message : '数据库保存失败';
+        console.warn('数据库保存失败:', error);
       }
     }
     
     if (!databaseSaved && authUser) {
-      setSubmitError('数据库保存失败，请确认 Supabase 表和 Storage 已创建后重试。');
+      setSubmitError(`发布失败：${databaseError || '请确认 Supabase 表和 Storage 已创建后重试。'}`);
       setIsSubmitting(false);
       return;
     }

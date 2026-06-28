@@ -1,36 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
+import { ensureUserProfile } from '@/lib/authUser';
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
   error: string | null;
-}
-
-async function upsertProfile(user: User, updates: { username?: string; avatar?: string; bio?: string } = {}) {
-  if (!isSupabaseConfigured) return;
-
-  const metadata = user.user_metadata ?? {};
-
-  const { error } = await supabase
-    .from('profiles')
-    .upsert(
-      {
-        id: user.id,
-        email: user.email,
-        username: updates.username || metadata.username || metadata.name || user.email?.split('@')[0] || '墨友',
-        avatar: updates.avatar || metadata.avatar || '/images/avatar-1.jpg',
-        bio: updates.bio || metadata.bio || '一笔一世界，墨染千重山',
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    );
-
-  if (error) {
-    console.warn('同步用户资料失败:', error.message);
-  }
 }
 
 export function useAuth() {
@@ -48,7 +25,11 @@ export function useAuth() {
     }
 
     // 获取当前会话
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        await ensureUserProfile(session.user);
+      }
+
       setState({
         user: session?.user ?? null,
         session,
@@ -60,6 +41,10 @@ export function useAuth() {
     // 监听认证事件
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        if (session?.user) {
+          void ensureUserProfile(session.user);
+        }
+
         setState({
           user: session?.user ?? null,
           session,
@@ -98,7 +83,7 @@ export function useAuth() {
     }
 
     if (data.user) {
-      await upsertProfile(data.user, {
+      await ensureUserProfile(data.user, {
         username: username || email.split('@')[0],
       });
     }
@@ -134,7 +119,7 @@ export function useAuth() {
     }
 
     if (data.user) {
-      await upsertProfile(data.user);
+      await ensureUserProfile(data.user);
     }
 
     setState({
@@ -219,7 +204,7 @@ export function useAuth() {
     }
 
     if (data.user) {
-      await upsertProfile(data.user, updates);
+      await ensureUserProfile(data.user, updates);
     }
 
     setState((prev) => ({
@@ -252,7 +237,7 @@ export function useAuth() {
     }
 
     if (data.user) {
-      await upsertProfile(data.user, { username: name, bio });
+      await ensureUserProfile(data.user, { username: name, bio });
     }
 
     setState((prev) => ({

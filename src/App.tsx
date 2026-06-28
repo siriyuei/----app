@@ -18,7 +18,7 @@ import { PublishSuccessModal } from '@/components/PublishSuccessModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { authUserToAppUser, type ProfileRow } from '@/lib/authUser';
+import { authUserToAppUser, ensureUserProfile, type ProfileRow } from '@/lib/authUser';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 // 页面过渡动画配置
@@ -57,6 +57,12 @@ function App() {
 
       if (!isSupabaseConfigured) {
         return;
+      }
+
+      const profileResult = await ensureUserProfile(user);
+      if (!isActive) return;
+      if (!profileResult.success) {
+        console.warn('同步用户资料失败:', profileResult.error);
       }
 
       const { data, error } = await supabase
