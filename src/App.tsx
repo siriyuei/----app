@@ -18,6 +18,8 @@ import { PublishSuccessModal } from '@/components/PublishSuccessModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { authUserToAppUser, type ProfileRow } from '@/lib/authUser';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 // 页面过渡动画配置
 const pageTransition = {
@@ -36,10 +38,46 @@ const splashTransition = {
 };
 
 function App() {
-  const { currentPage, theme, setCurrentPage } = useStore();
+  const { currentPage, theme, setCurrentPage, setUser } = useStore();
   const { user, loading: authLoading } = useAuth();
 
   const isDark = theme === 'dark';
+
+  // 同步 Supabase 登录用户到应用资料状态
+  useEffect(() => {
+    let isActive = true;
+
+    const syncAppUser = async () => {
+      if (!user) {
+        setUser(null);
+        return;
+      }
+
+      setUser(authUserToAppUser(user));
+
+      if (!isSupabaseConfigured) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar, bio, followers, following, works_count, is_verified')
+        .eq('id', user.id)
+        .maybeSingle<ProfileRow>();
+
+      if (!isActive || error) return;
+
+      setUser(authUserToAppUser(user, data));
+    };
+
+    if (!authLoading) {
+      void syncAppUser();
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, [authLoading, setUser, user]);
 
   // 未登录时直接显示登录界面
   useEffect(() => {
@@ -62,7 +100,7 @@ function App() {
     return useStore.persist.onFinishHydration(() => {
       checkAuthAndNavigate();
     });
-  }, [user, setCurrentPage]);
+  }, [currentPage, user, setCurrentPage]);
 
   // 用户登录后自动跳转
   useEffect(() => {

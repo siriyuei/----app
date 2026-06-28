@@ -1,73 +1,66 @@
-# React + TypeScript + Vite
+# 云栖·墨境 App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个基于 React + Vite + TypeScript 的移动端国风创作社区 App，已接入 Supabase 登录注册、作品/动态数据表和图片 Storage，并提供 Vercel 部署配置。
 
-Currently, two official plugins are available:
+## 技术栈
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 19 + TypeScript + Vite
+- Tailwind CSS + shadcn 风格组件
+- Zustand 状态管理
+- Supabase Auth / Database / Storage
+- Vercel 静态部署
 
-## React Compiler
+## 本地运行
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+在 `.env.local` 填入 Supabase 项目的公开配置：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-or-publishable-key
 ```
+
+## Supabase 初始化
+
+1. 在 Supabase 创建一个新项目。
+2. 打开 `SQL Editor`。
+3. 复制 `supabase/schema.sql` 全部内容并执行。
+4. 在 `Authentication > Providers` 确认 Email 登录已开启。
+5. 如果需要本地调试时免邮箱确认，在 `Authentication > Sign In / Providers > Email` 关闭 Confirm email。
+
+脚本会创建：
+
+- `profiles` 用户资料表
+- `works` 作品表
+- `posts` 动态表
+- `likes` 点赞表
+- 点赞计数 RPC
+- Row Level Security 策略
+- `avatars`、`works`、`posts` Storage buckets
+
+## 构建
+
+```bash
+npm run build
+```
+
+构建输出目录为 `dist`。
+
+## GitHub + Vercel 部署
+
+1. 把当前 `app` 目录推到 GitHub 仓库。
+2. 在 Vercel 选择 `Add New Project`，导入该 GitHub 仓库。
+3. Framework Preset 选择 `Vite`。
+4. Build Command 使用 `npm run build`。
+5. Output Directory 使用 `dist`。
+6. 在 Vercel `Settings > Environment Variables` 添加：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+7. Deploy 后即可获得 Vercel 访问地址。
+
+项目已包含 `vercel.json`，默认会按 `npm install`、`vite build`、`dist` 输出部署。

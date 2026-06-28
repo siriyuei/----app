@@ -45,7 +45,7 @@ export function Splash() {
           )}
         >
           {/* 墨滴涟漪效果 */}
-          <div className="relative w-48 h-48 mb-8">
+          <div className="relative w-48 h-48 mb-8 pointer-events-none">
             {/* 中心墨点 */}
             <motion.div
               initial={{ scale: 0, opacity: 0 }}

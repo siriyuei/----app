@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 type BucketName = 'avatars' | 'works' | 'posts';
@@ -27,6 +27,10 @@ export function useStorage(user: User | null) {
   ): Promise<{ success: boolean; url?: string; error?: string }> => {
     if (!user) {
       return { success: false, error: '请先登录' };
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
     }
 
     setState({ uploading: true, progress: 0, error: null, url: null });
@@ -92,6 +96,10 @@ export function useStorage(user: User | null) {
   ): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: '请先登录' };
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
     }
 
     try {

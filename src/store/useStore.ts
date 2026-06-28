@@ -306,7 +306,7 @@ const mockPosts: Post[] = [
 
 export const useStore = create<AppState>()(
   persist(
-    (set, _get) => ({
+    (set) => ({
       // 主题
       theme: 'light',
       setTheme: (theme) => set({ theme }),

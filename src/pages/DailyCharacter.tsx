@@ -65,15 +65,23 @@ export function DailyCharacter() {
     if (!isPlaying) return;
 
     if (currentStroke < characterData.strokeOrder.length) {
-      setShowStroke(true);
+      const showTimer = window.setTimeout(() => {
+        setShowStroke(true);
+      }, 0);
       const timer = setTimeout(() => {
         setCurrentStroke(prev => prev + 1);
         setShowStroke(false);
       }, 800);
-      return () => clearTimeout(timer);
-    } else {
-      setIsPlaying(false);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(timer);
+      };
     }
+
+    const finishTimer = window.setTimeout(() => {
+      setIsPlaying(false);
+    }, 0);
+    return () => clearTimeout(finishTimer);
   }, [isPlaying, currentStroke]);
 
   const handlePlay = () => {

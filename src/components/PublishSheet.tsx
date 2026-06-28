@@ -13,6 +13,11 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { authUserToAppUser } from '@/lib/authUser';
+import { useAuth } from '@/hooks/useAuth';
+import { usePosts, useWorks } from '@/hooks/useDatabase';
+import { useStorage } from '@/hooks/useStorage';
 
 // 发布类型
 const publishTypes = [
@@ -27,13 +32,19 @@ const tagOptions = [
 ];
 
 export function PublishSheet() {
-  const { isPublishOpen, setIsPublishOpen, setIsPublishSuccess, theme, user, addWork, addPost } = useStore();
+  const { isPublishOpen, setIsPublishOpen, setIsPublishSuccess, theme, user: storeUser, addWork, addPost } = useStore();
+  const { user: authUser } = useAuth();
+  const { createWork } = useWorks(authUser, false);
+  const { createPost } = usePosts(authUser, false);
+  const { uploadWorkImage, compressImage: compressFileForUpload } = useStorage(authUser);
   const [activeType, setActiveType] = useState('calligraphy');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState('');
   
   // 文件上传input引用
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +58,8 @@ export function PublishSheet() {
     setContent('');
     setSelectedTags([]);
     setUploadedImage(null);
+    setUploadedFile(null);
+    setSubmitError('');
   }, [setIsPublishOpen]);
 
   useEffect(() => {
@@ -141,6 +154,7 @@ export function PublishSheet() {
       // 压缩图片
       const compressedDataUrl = await compressImage(file);
       setUploadedImage(compressedDataUrl);
+      setUploadedFile(file);
     } catch (error) {
       console.error('图片处理失败:', error);
       alert('图片处理失败，请重试');
@@ -152,29 +166,79 @@ export function PublishSheet() {
     }
   };
 
-  const handlePublish = () => {
-    if (!user) return;
+  const handlePublish = async () => {
+    const author = storeUser ?? (authUser ? authUserToAppUser(authUser) : null);
+
+    if (!author) {
+      setSubmitError('请先登录后再发布作品');
+      return;
+    }
     
     setIsSubmitting(true);
+    setSubmitError('');
     
     // 使用上传的图片或默认图片
-    const imageUrl = uploadedImage || `/images/work-${activeType}-1.jpg`;
+    let imageUrl = uploadedImage || `/images/work-${activeType}-1.jpg`;
+    let databaseSaved = false;
+
+    if (authUser) {
+      try {
+        if (uploadedFile) {
+          const optimizedFile = await compressFileForUpload(uploadedFile, 1200, 1200, 0.82);
+          const uploadResult = await uploadWorkImage(optimizedFile);
+
+          if (!uploadResult.success || !uploadResult.url) {
+            throw new Error(uploadResult.error || '图片上传失败');
+          }
+
+          imageUrl = uploadResult.url;
+        }
+
+        const workResult = await createWork({
+          title: title || '无题',
+          content,
+          image: imageUrl,
+          tags: selectedTags,
+        });
+
+        const postResult = await createPost({
+          title: title || '',
+          content,
+          image: imageUrl,
+          tags: selectedTags,
+          type: activeType,
+        });
+
+        databaseSaved = workResult.success && postResult.success;
+
+        if (!databaseSaved) {
+          console.warn('数据库保存失败，已使用本地兜底:', workResult.error || postResult.error);
+        }
+      } catch (error) {
+        console.warn('数据库保存失败，已使用本地兜底:', error);
+      }
+    }
     
-    // 添加到作品列表
+    if (!databaseSaved && authUser) {
+      setSubmitError('数据库保存失败，请确认 Supabase 表和 Storage 已创建后重试。');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 添加到本地列表作为乐观展示
     addWork({
       title: title || '无题',
       content: content,
       image: imageUrl,
-      author: user,
+      author,
       tags: selectedTags,
     });
     
-    // 添加到动态列表
     addPost({
       title: title || '',
       content: content,
       image: imageUrl,
-      author: user,
+      author,
       tags: selectedTags,
       type: activeType as 'calligraphy' | 'painting' | 'poetry',
     });
@@ -184,6 +248,7 @@ export function PublishSheet() {
     setContent('');
     setSelectedTags([]);
     setUploadedImage(null);
+    setUploadedFile(null);
     setIsSubmitting(false);
     
     // 立即关闭面板并显示成功弹窗
@@ -274,6 +339,13 @@ export function PublishSheet() {
 
             {/* 内容区域 */}
             <div className="p-4 overflow-y-auto max-h-[calc(85vh-60px)]">
+              {/* 类型选择 */}
+              {submitError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{submitError}</AlertDescription>
+                </Alert>
+              )}
+
               {/* 类型选择 */}
               <div className="flex gap-2 mb-4">
                 {publishTypes.map((type) => {

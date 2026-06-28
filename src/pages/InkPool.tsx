@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SmartImage } from '@/components/SmartImage';
 import { DrawingCanvas } from '@/components/DrawingCanvas';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorks } from '@/hooks/useDatabase';
+import { mapDbWorkToWork } from '@/lib/databaseMappers';
 
 // 工具栏数据
 const tools = [
@@ -35,18 +38,28 @@ const colors = [
 ];
 
 export function InkPool() {
-  const { theme, works, toggleLike, likedItems, setDialogItem } = useStore();
+  const { theme, works: localWorks, toggleLike, likedItems, setDialogItem } = useStore();
+  const { user } = useAuth();
+  const { works: databaseWorks, error: worksError, likeWork } = useWorks(user);
   const [activeTool, setActiveTool] = useState('brush');
   const [activeColor, setActiveColor] = useState('black');
 
   const isDark = theme === 'dark';
+  const isUsingDatabaseWorks = !worksError && databaseWorks.length > 0;
+  const works = isUsingDatabaseWorks ? databaseWorks.map(mapDbWorkToWork) : localWorks;
 
   const handleWorkClick = (work: typeof works[0]) => {
     setDialogItem({ type: 'work', data: work });
   };
 
-  const handleLike = (e: React.MouseEvent, workId: string) => {
+  const handleLike = async (e: React.MouseEvent, workId: string) => {
     e.stopPropagation();
+
+    if (isUsingDatabaseWorks) {
+      const result = await likeWork(workId);
+      if (result.success) return;
+    }
+
     toggleLike(workId);
   };
 

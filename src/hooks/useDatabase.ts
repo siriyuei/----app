@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 // 作品类型定义
@@ -43,14 +43,35 @@ export interface Post {
   };
 }
 
+interface ProfileRelation {
+  username: string | null;
+  avatar: string | null;
+  is_verified: boolean | null;
+}
+
+type WorkWithProfile = Work & {
+  profiles?: ProfileRelation | null;
+};
+
+type PostWithProfile = Post & {
+  profiles?: ProfileRelation | null;
+};
+
 // 作品相关操作
-export function useWorks(user: User | null) {
+export function useWorks(user: User | null, enabled = true) {
   const [works, setWorks] = useState<Work[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled && isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
   // 获取所有作品
   const fetchWorks = useCallback(async () => {
+    if (!enabled || !isSupabaseConfigured) {
+      setWorks([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -59,19 +80,19 @@ export function useWorks(user: User | null) {
         .from('works')
         .select(`
           *,
-          profiles:user_id (username, avatar)
+          profiles:user_id (username, avatar, is_verified)
         `)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
       // 转换数据格式
-      const formattedWorks = (data || []).map((work: any) => ({
+      const formattedWorks = ((data || []) as WorkWithProfile[]).map((work) => ({
         ...work,
         author: {
           name: work.profiles?.username || '匿名用户',
           avatar: work.profiles?.avatar || '/images/avatar-1.jpg',
-          isVerified: false,
+          isVerified: work.profiles?.is_verified || false,
         },
       }));
 
@@ -81,7 +102,7 @@ export function useWorks(user: User | null) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   // 创建新作品
   const createWork = useCallback(async (workData: {
@@ -92,6 +113,10 @@ export function useWorks(user: User | null) {
   }) => {
     if (!user) {
       return { success: false, error: '请先登录' };
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
     }
 
     try {
@@ -108,8 +133,9 @@ export function useWorks(user: User | null) {
 
       if (insertError) throw insertError;
 
-      // 刷新作品列表
-      await fetchWorks();
+      if (enabled) {
+        await fetchWorks();
+      }
 
       return { success: true, work: data };
     } catch (err) {
@@ -118,12 +144,16 @@ export function useWorks(user: User | null) {
         error: err instanceof Error ? err.message : '创建作品失败',
       };
     }
-  }, [user, fetchWorks]);
+  }, [enabled, user, fetchWorks]);
 
   // 删除作品
   const deleteWork = useCallback(async (workId: string) => {
     if (!user) {
       return { success: false, error: '请先登录' };
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
     }
 
     try {
@@ -135,8 +165,9 @@ export function useWorks(user: User | null) {
 
       if (deleteError) throw deleteError;
 
-      // 刷新作品列表
-      await fetchWorks();
+      if (enabled) {
+        await fetchWorks();
+      }
 
       return { success: true };
     } catch (err) {
@@ -145,7 +176,7 @@ export function useWorks(user: User | null) {
         error: err instanceof Error ? err.message : '删除作品失败',
       };
     }
-  }, [user, fetchWorks]);
+  }, [enabled, user, fetchWorks]);
 
   // 点赞作品
   const likeWork = useCallback(async (workId: string) => {
@@ -153,32 +184,44 @@ export function useWorks(user: User | null) {
       return { success: false, error: '请先登录' };
     }
 
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
+    }
+
     try {
       // 检查是否已点赞
-      const { data: existingLike } = await supabase
+      const { data: existingLike, error: likeError } = await supabase
         .from('likes')
         .select('id')
         .eq('user_id', user.id)
         .eq('work_id', workId)
-        .single();
+        .maybeSingle();
+
+      if (likeError) throw likeError;
 
       if (existingLike) {
         // 取消点赞
-        await supabase
+        const { error: deleteLikeError } = await supabase
           .from('likes')
           .delete()
           .eq('id', existingLike.id);
 
+        if (deleteLikeError) throw deleteLikeError;
+
         // 减少点赞数
-        await supabase.rpc('decrement_likes', { work_id: workId });
+        const { error: decrementError } = await supabase.rpc('decrement_work_likes', { work_row_id: workId });
+        if (decrementError) throw decrementError;
       } else {
         // 添加点赞
-        await supabase
+        const { error: insertLikeError } = await supabase
           .from('likes')
           .insert([{ user_id: user.id, work_id: workId }]);
 
+        if (insertLikeError) throw insertLikeError;
+
         // 增加点赞数
-        await supabase.rpc('increment_likes', { work_id: workId });
+        const { error: incrementError } = await supabase.rpc('increment_work_likes', { work_row_id: workId });
+        if (incrementError) throw incrementError;
       }
 
       await fetchWorks();
@@ -193,6 +236,8 @@ export function useWorks(user: User | null) {
 
   // 实时订阅新作品
   useEffect(() => {
+    if (!enabled || !isSupabaseConfigured) return;
+
     const channel = supabase
       .channel('works-channel')
       .on(
@@ -205,12 +250,12 @@ export function useWorks(user: User | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchWorks]);
+  }, [enabled, fetchWorks]);
 
   // 初始加载
   useEffect(() => {
     fetchWorks();
-  }, [fetchWorks]);
+  }, [enabled, fetchWorks]);
 
   return {
     works,
@@ -224,13 +269,20 @@ export function useWorks(user: User | null) {
 }
 
 // 动态相关操作
-export function usePosts(user: User | null) {
+export function usePosts(user: User | null, enabled = true) {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled && isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
   // 获取所有动态
   const fetchPosts = useCallback(async () => {
+    if (!enabled || !isSupabaseConfigured) {
+      setPosts([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -239,19 +291,19 @@ export function usePosts(user: User | null) {
         .from('posts')
         .select(`
           *,
-          profiles:user_id (username, avatar)
+          profiles:user_id (username, avatar, is_verified)
         `)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
       // 转换数据格式
-      const formattedPosts = (data || []).map((post: any) => ({
+      const formattedPosts = ((data || []) as PostWithProfile[]).map((post) => ({
         ...post,
         author: {
           name: post.profiles?.username || '匿名用户',
           avatar: post.profiles?.avatar || '/images/avatar-1.jpg',
-          isVerified: false,
+          isVerified: post.profiles?.is_verified || false,
         },
       }));
 
@@ -261,7 +313,7 @@ export function usePosts(user: User | null) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   // 创建新动态
   const createPost = useCallback(async (postData: {
@@ -273,6 +325,10 @@ export function usePosts(user: User | null) {
   }) => {
     if (!user) {
       return { success: false, error: '请先登录' };
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
     }
 
     try {
@@ -290,7 +346,9 @@ export function usePosts(user: User | null) {
 
       if (insertError) throw insertError;
 
-      await fetchPosts();
+      if (enabled) {
+        await fetchPosts();
+      }
 
       return { success: true, post: data };
     } catch (err) {
@@ -299,12 +357,16 @@ export function usePosts(user: User | null) {
         error: err instanceof Error ? err.message : '创建动态失败',
       };
     }
-  }, [user, fetchPosts]);
+  }, [enabled, user, fetchPosts]);
 
   // 删除动态
   const deletePost = useCallback(async (postId: string) => {
     if (!user) {
       return { success: false, error: '请先登录' };
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
     }
 
     try {
@@ -316,7 +378,9 @@ export function usePosts(user: User | null) {
 
       if (deleteError) throw deleteError;
 
-      await fetchPosts();
+      if (enabled) {
+        await fetchPosts();
+      }
 
       return { success: true };
     } catch (err) {
@@ -325,7 +389,7 @@ export function usePosts(user: User | null) {
         error: err instanceof Error ? err.message : '删除动态失败',
       };
     }
-  }, [user, fetchPosts]);
+  }, [enabled, user, fetchPosts]);
 
   // 点赞动态
   const likePost = useCallback(async (postId: string) => {
@@ -333,23 +397,39 @@ export function usePosts(user: User | null) {
       return { success: false, error: '请先登录' };
     }
 
+    if (!isSupabaseConfigured) {
+      return { success: false, error: '请先配置 Supabase 环境变量' };
+    }
+
     try {
-      const { data: existingLike } = await supabase
+      const { data: existingLike, error: likeError } = await supabase
         .from('likes')
         .select('id')
         .eq('user_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
+
+      if (likeError) throw likeError;
 
       if (existingLike) {
-        await supabase
+        const { error: deleteLikeError } = await supabase
           .from('likes')
           .delete()
           .eq('id', existingLike.id);
+
+        if (deleteLikeError) throw deleteLikeError;
+
+        const { error: decrementError } = await supabase.rpc('decrement_post_likes', { post_row_id: postId });
+        if (decrementError) throw decrementError;
       } else {
-        await supabase
+        const { error: insertLikeError } = await supabase
           .from('likes')
           .insert([{ user_id: user.id, post_id: postId }]);
+
+        if (insertLikeError) throw insertLikeError;
+
+        const { error: incrementError } = await supabase.rpc('increment_post_likes', { post_row_id: postId });
+        if (incrementError) throw incrementError;
       }
 
       await fetchPosts();
@@ -364,6 +444,8 @@ export function usePosts(user: User | null) {
 
   // 实时订阅新动态
   useEffect(() => {
+    if (!enabled || !isSupabaseConfigured) return;
+
     const channel = supabase
       .channel('posts-channel')
       .on(
@@ -376,7 +458,7 @@ export function usePosts(user: User | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchPosts]);
+  }, [enabled, fetchPosts]);
 
   // 初始加载
   useEffect(() => {

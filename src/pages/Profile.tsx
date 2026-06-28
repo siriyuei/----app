@@ -49,7 +49,7 @@ const placeholderWorks = [
   ];
 
 export function Profile() {
-  const { user, theme, setCurrentPage } = useStore();
+  const { user, theme, setCurrentPage, setUser } = useStore();
   const { signOut, updateUserProfile } = useAuth();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -76,6 +76,7 @@ export function Profile() {
     
     const result = await updateUserProfile(editForm.name, editForm.bio);
     if (result.success) {
+      setUser({ ...user, name: editForm.name, bio: editForm.bio });
       setEditSuccess(true);
       setTimeout(() => {
         setIsEditing(false);

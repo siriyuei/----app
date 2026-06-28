@@ -17,6 +17,9 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { SmartImage } from '@/components/SmartImage';
+import { useAuth } from '@/hooks/useAuth';
+import { usePosts } from '@/hooks/useDatabase';
+import { mapDbPostToPost } from '@/lib/databaseMappers';
 
 // 话题标签
 const topics = [
@@ -56,17 +59,27 @@ const events = [
 ];
 
 export function Gathering() {
-  const { theme, posts, toggleLike, likedItems, setDialogItem } = useStore();
+  const { theme, posts: localPosts, toggleLike, likedItems, setDialogItem } = useStore();
+  const { user } = useAuth();
+  const { posts: databasePosts, error: postsError, likePost } = usePosts(user);
   const [activeTopic, setActiveTopic] = useState('spring');
 
   const isDark = theme === 'dark';
+  const isUsingDatabasePosts = !postsError && databasePosts.length > 0;
+  const posts = isUsingDatabasePosts ? databasePosts.map(mapDbPostToPost) : localPosts;
 
   const handlePostClick = (post: typeof posts[0]) => {
     setDialogItem({ type: 'post', data: post });
   };
 
-  const handleLike = (e: React.MouseEvent, postId: string) => {
+  const handleLike = async (e: React.MouseEvent, postId: string) => {
     e.stopPropagation();
+
+    if (isUsingDatabasePosts) {
+      const result = await likePost(postId);
+      if (result.success) return;
+    }
+
     toggleLike(postId);
   };
 

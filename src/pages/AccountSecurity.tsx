@@ -23,7 +23,9 @@ const securityItems = [
   { id: 'password', name: '修改密码', icon: Lock, desc: '定期更换密码保护账号安全' },
   { id: 'email', name: '绑定邮箱', icon: EnvelopeSimple, desc: '用于找回密码和接收通知' },
   { id: 'devices', name: '登录设备', icon: DeviceMobile, desc: '管理当前登录的设备' },
-];
+] as const;
+
+type SecurityTab = (typeof securityItems)[number]['id'];
 
 const mockDevices = [
   { id: '1', name: 'iPhone 15 Pro', ip: '192.168.1.100', location: '本地网络', time: '刚刚', active: true },
@@ -35,7 +37,7 @@ export function AccountSecurity() {
   const { theme, setCurrentPage, user } = useStore();
   const { updatePassword } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'password' | 'email' | 'devices'>('password');
+  const [activeTab, setActiveTab] = useState<SecurityTab>('password');
   const [showPassword, setShowPassword] = useState({ old: false, new: false, confirm: false });
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
@@ -125,7 +127,7 @@ export function AccountSecurity() {
               <motion.button
                 key={item.id}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab(item.id as any)}
+                onClick={() => setActiveTab(item.id)}
                 className={cn(
                   'flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-lg',
                   isActive

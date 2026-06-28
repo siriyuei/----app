@@ -15,6 +15,12 @@ const toolConfig = {
   eraser: { lineWidth: 20, lineCap: 'round' as const, lineJoin: 'round' as const, opacity: 1 },
 };
 
+type CanvasWithActions = HTMLCanvasElement & {
+  __undo?: () => void;
+  __redo?: () => void;
+  __clear?: () => void;
+};
+
 export function DrawingCanvas({ tool, color, isDark }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -52,7 +58,9 @@ export function DrawingCanvas({ tool, color, isDark }: DrawingCanvasProps) {
     ctx.fillRect(0, 0, rect.width, rect.height);
 
     // 保存初始状态到历史记录
-    saveToHistory();
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setHistory([imageData]);
+    setHistoryIndex(0);
   }, [isDark]);
 
   // 保存当前状态到历史记录
@@ -193,9 +201,10 @@ export function DrawingCanvas({ tool, color, isDark }: DrawingCanvasProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      (canvas as any).__undo = undo;
-      (canvas as any).__redo = redo;
-      (canvas as any).__clear = clear;
+      const actionCanvas = canvas as CanvasWithActions;
+      actionCanvas.__undo = undo;
+      actionCanvas.__redo = redo;
+      actionCanvas.__clear = clear;
     }
   }, [undo, redo, clear]);
 
